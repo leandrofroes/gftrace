@@ -8,7 +8,7 @@ A command line Windows API tracing tool for Golang binaries.
 
 Although Golang programs contains a lot of nuances regarding the way they are built and their behavior in runtime they still need to interact with the OS layer and that means at some point they do need to call functions from the Windows API.
 
-The Golang runtime package contains a function called [asmstdcall](https://github.com/golang/go/blob/2c7856087a7b3864284f908c0a091fd5af419d03/src/runtime/sys_windows_arm64.s#L22) and this function is a kind of "gate" used to interact with the Windows API. Since it's expected this function to call the Windows API functions we can assume it needs to have access to information such as the address of the function and it's parameters, and this is where things start to get more interesting.
+The Golang runtime package contains a function called [asmstdcall](https://github.com/golang/go/blob/2c7856087a7b3864284f908c0a091fd5af419d03/src/runtime/sys_windows_amd64.s#L15) and this function is a kind of "gate" used to interact with the Windows API. Since it's expected this function to call the Windows API functions we can assume it needs to have access to information such as the address of the function and it's parameters, and this is where things start to get more interesting.
 
 Asmstdcall receives a single parameter which is pointer to something similar to the following structure:
 
