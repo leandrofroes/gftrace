@@ -52,9 +52,9 @@ FindPattern(
 VOID
 LogAPICall(
 	_In_ LPCSTR FuncName,
-	_In_ DWORD64 Argc,
-	_In_ DWORD64* Params,
-	_In_ DWORD64 ReturnValue
+	_In_ DWORD Argc,
+	_In_ DWORD_PTR Params,
+	_In_ DWORD ReturnValue
 	)
 {
 	char* TempBuffer = calloc(MAX_STR_SIZE, 1);
@@ -69,15 +69,15 @@ LogAPICall(
 	//
 	for (SIZE_T i = 0; i < Argc; i++)
 	{
-		DWORD64* Argv = ((DWORD64*)Params + i);
+		DWORD_PTR Argv = *((DWORD_PTR *)Params + i);
 
 		//
 		// Try to guess if the address is a string and if so, print it properly and if not, print as a hex value.
 		//
-		if (IsWideStr((BYTE*)*Argv))
+		if (IsWideStr((BYTE*)Argv))
 		{
-			LPCWSTR StrArg = (LPCWSTR)*Argv;
-			if (wcslen((LPCWSTR)*Argv) > 2048)
+			LPCWSTR StrArg = (LPCWSTR)Argv;
+			if (wcslen((LPCWSTR)Argv) > 2048)
 			{
 				StrArg = L"[string is too large]";
 			}
@@ -87,7 +87,7 @@ LogAPICall(
 		}
 		else
 		{
-			snprintf(TempBuffer, Size, "0x%llx", *Argv);
+			snprintf(TempBuffer, Size, "0x%lx", Argv);
 			strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 		}
 
@@ -98,7 +98,7 @@ LogAPICall(
 		}
 	}
 
-	snprintf(TempBuffer, Size, ") = 0x%llx (%d)", ReturnValue, (INT)ReturnValue);
+	snprintf(TempBuffer, Size, ") = 0x%lx (%d)", ReturnValue, (INT)ReturnValue);
 	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
 	//
@@ -152,7 +152,7 @@ IsValidStrMem(
 	HANDLE hProcess = GetCurrentProcess();
 	MEMORY_BASIC_INFORMATION Mbi = { 0 };
 
-	if (!VirtualQueryEx(hProcess, Addr, &Mbi, sizeof(Mbi)))
+	if (!VirtualQueryEx(hProcess, Addr, &Mbi, sizeof(Mbi)) && GetLastError() != ERROR_INVALID_PARAMETER)
 	{
 		PrintWinError("Failed to query virtual memory", GetLastError());
 	}
@@ -202,7 +202,13 @@ InitTargetFuncList()
 	char ConfigFileFullPath[MAX_PATH] = { 0 };
 	char CurrentModuleFilepath[MAX_PATH] = { 0 };
 
-	DWORD Len = GetModuleFileNameA(GetModuleHandleA("gftrace.dll"), CurrentModuleFilepath, MAX_PATH);
+#ifdef _WIN64
+	LPCSTR ModuleName = "gftrace.dll";
+#else
+	LPCSTR ModuleName = "gftrace32.dll";
+#endif
+
+	DWORD Len = GetModuleFileNameA(GetModuleHandleA(ModuleName), CurrentModuleFilepath, MAX_PATH);
 
 	if (!Len)
 	{

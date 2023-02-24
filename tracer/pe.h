@@ -56,6 +56,7 @@ typedef struct _PEB
 } PEB, * PPEB;
 
 PIMAGE_NT_HEADERS64 GetNtHeader(_In_ DWORD_PTR ModuleBase);
+PIMAGE_NT_HEADERS32 GetNtHeader32(_In_ DWORD_PTR ModuleBase);
 PIMAGE_SECTION_HEADER GetSectionHeader(_In_ DWORD_PTR ModuleBase, _In_ BYTE* SectionName);
 PIMAGE_EXPORT_DIRECTORY GetExportDirectory(_In_ DWORD_PTR ModuleBase);
 FARPROC GetExportAddr(_In_ LPCSTR ExportName);

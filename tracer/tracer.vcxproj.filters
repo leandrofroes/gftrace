@@ -43,5 +43,8 @@
     <MASM Include="stub.asm">
       <Filter>Source Files</Filter>
     </MASM>
+    <MASM Include="stub32.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
   </ItemGroup>
 </Project>

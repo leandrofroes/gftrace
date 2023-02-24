@@ -27,11 +27,12 @@ int main(int argc, char *argv[]) {
     HANDLE hProcess = ProcessInformation.hProcess;
     HANDLE hThread = ProcessInformation.hThread;
 
-    BOOL IsWow64Proc = FALSE;
-
     //
     // Check if the target process is a Wow64 process and if so, terminate it cause we don't support it.
     //
+#ifdef _WIN64
+    BOOL IsWow64Proc = FALSE;
+
     if (!IsWow64Process(hProcess, &IsWow64Proc))
     {
         printf("[!] Failed to check if the target process is WoW64.\n[!] Error code: %u\n", GetLastError());
@@ -45,6 +46,7 @@ int main(int argc, char *argv[]) {
         TerminateProcess(hProcess, 0);
         return 1;
     }
+#endif
 
     char LibFullPath[MAX_PATH] = { 0 };
     char CurrentModuleFilepath[MAX_PATH] = { 0 };
@@ -74,7 +76,11 @@ int main(int argc, char *argv[]) {
         i++;
     } while (CurrentModuleFilepath[i] != '\0');
 
+#ifdef _WIN64
     const char* LibName = "\\gftrace.dll";
+#else
+    const char* LibName = "\\gftrace32.dll";
+#endif
 
     SIZE_T Size = strlen(LibFullPath) + strlen(LibName) + 1;
 
@@ -88,7 +94,7 @@ int main(int argc, char *argv[]) {
     //
     if (GetFileAttributesA((LPCSTR)LibFullPath) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
     {
-        printf("[!] Failed to find the gftrace.dll file in the gftrace.exe directory.\n");
+        printf("[!] Failed to find the gftrace DLL file in the gftrace.exe directory.\n");
         TerminateProcess(hProcess, 0);
         return 1;
     }
@@ -120,7 +126,7 @@ int main(int argc, char *argv[]) {
     //
     // Allocate memory for gftrace DLL full path in the target process.
     //
-    LPVOID LibFullPathRemoteAddr = VirtualAllocEx(hProcess, NULL, Size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    LPVOID LibFullPathRemoteAddr = VirtualAllocEx(hProcess, NULL, Size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
     if (LibFullPathRemoteAddr == NULL)
     {

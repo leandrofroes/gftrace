@@ -13,7 +13,29 @@ GetNtHeader(
 		PrintError("The target process has an invalid DOS Signare");
 	}
 
-	IMAGE_NT_HEADERS64* NtHeader = (IMAGE_NT_HEADERS64*)(ModuleBase + DosHeader->e_lfanew);
+	PIMAGE_NT_HEADERS64 NtHeader = (IMAGE_NT_HEADERS64*)(ModuleBase + DosHeader->e_lfanew);
+
+	if (NtHeader->Signature != IMAGE_NT_SIGNATURE)
+	{
+		PrintError("The target process has an invalid PE Signare");
+	}
+
+	return NtHeader;
+}
+
+PIMAGE_NT_HEADERS32
+GetNtHeader32(
+	_In_ DWORD_PTR ModuleBase
+	)
+{
+	IMAGE_DOS_HEADER* DosHeader = (IMAGE_DOS_HEADER*)ModuleBase;
+
+	if (DosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+	{
+		PrintError("The target process has an invalid DOS Signare");
+	}
+
+	PIMAGE_NT_HEADERS32 NtHeader = (IMAGE_NT_HEADERS32*)(ModuleBase + DosHeader->e_lfanew);
 
 	if (NtHeader->Signature != IMAGE_NT_SIGNATURE)
 	{
@@ -28,8 +50,14 @@ GetExportDirectory(
 	_In_ DWORD_PTR ModuleBase
 	)
 {
-	IMAGE_NT_HEADERS64* NtHeader = GetNtHeader(ModuleBase);
+#ifdef _WIN64
+	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
 	IMAGE_OPTIONAL_HEADER64 OptHeader = NtHeader->OptionalHeader;
+#else
+	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32(ModuleBase);
+	IMAGE_OPTIONAL_HEADER32 OptHeader = NtHeader->OptionalHeader;
+#endif
+
 	IMAGE_DATA_DIRECTORY ExportDataDir = OptHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
 	DWORD ExportDirRva = ExportDataDir.VirtualAddress;
 
@@ -47,7 +75,12 @@ GetSectionHeader(
 	_In_ BYTE* SectionName
 	)
 {
-	IMAGE_NT_HEADERS64* NtHeader = GetNtHeader(ModuleBase);
+#ifdef _WIN64
+	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
+#else
+	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32(ModuleBase);
+#endif
+
 	PIMAGE_SECTION_HEADER pSection = IMAGE_FIRST_SECTION(NtHeader);
 	DWORD NumberOfSections = NtHeader->FileHeader.NumberOfSections;
 
@@ -74,7 +107,12 @@ GetExportAddr(
 	_In_ LPCSTR ExportName
 	)
 {
+#ifdef _WIN64
 	PPEB Peb = (PPEB)__readgsqword(0x60);
+#else
+	PPEB Peb = (PPEB)__readfsdword(0x30);
+#endif
+
 	PLDR_DATA_TABLE_ENTRY CurrentModule = NULL;
 	PLIST_ENTRY CurrentEntry = Peb->Ldr->InLoadOrderModuleList.Flink;
 	FARPROC ExportAddr;

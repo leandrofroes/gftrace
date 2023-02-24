@@ -60,7 +60,6 @@ BOOL WINAPI DllMain(
     switch (Reason)
     {
         case DLL_PROCESS_ATTACH:
-
             //
             // Disable the DLL_THREAD_ATTACH and DLL_THREAD_DETACH notifications in our DLL.
             //
@@ -77,8 +76,12 @@ BOOL WINAPI DllMain(
             break;
 
         case DLL_PROCESS_DETACH:
+            while (!GetAsyncKeyState(VK_RETURN))
+            {
+                Sleep(1000);
+            }
 
-            system("pause");
+            printf("\n\n[+] Trace finished! Press \"Enter\" to close...\n");
 
             break;
     }
