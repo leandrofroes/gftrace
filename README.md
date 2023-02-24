@@ -8,7 +8,7 @@ A command line Windows API tracing tool for Golang binaries.
 
 Although Golang programs contains a lot of nuances regarding the way they are built and their behavior in runtime they still need to interact with the OS layer and that means at some point they do need to call functions from the Windows API.
 
-The Golang runtime package contains a function called [asmstdcall](https://github.com/golang/go/blob/2c7856087a7b3864284f908c0a091fd5af419d03/src/runtime/sys_windows_amd64.s#L15) and this function is a kind of "gate" used to interact with the Windows API. Since it's expected this function to call the Windows API functions we can assume it needs to have access to information such as the address of the function and it's parameters, and this is where things start to get more interesting.
+The Golang runtime package contains a function called [asmstdcall](https://github.com/golang/go/blob/2c7856087a7b3864284f908c0a091fd5af419d03/src/runtime/sys_windows_amd64.s#L15) and this function is a kind of "gateway" used to interact with the Windows API. Since it's expected this function to call the Windows API functions we can assume it needs to have access to information such as the address of the function and it's parameters, and this is where things start to get more interesting.
 
 Asmstdcall receives a single parameter which is pointer to something similar to the following structure:
 
@@ -28,6 +28,8 @@ Some of these fields are filled after the API function is called, like the retur
 The gftrace leverages asmstdcall and the way it works to monitor specific fields of the mentioned struct and log it to the user. The tool is capable of log the function name, it's parameters and also the return value of each Windows function called by a Golang application. All of it with no need to hook a single API function or have a signature for it.
 
 The tool also tries to ignore all the noise from Golang runtime initialization and only log functions called after it (i.e. functions from the main package).
+
+Note: I have plans to write more details about it all at some point in the future.
 
 ## **Installation**
 
@@ -53,7 +55,7 @@ CreateFileW,ReadFile,CreateProcessW
 
 The exact Windows API functions a Golang method X of a package Y would call in a specific scenario can only be determined either by analysis of the method itself or trying to guess it. There's some interesting characteristics that can be used to determine it, for example, Golang applications seems to always prefer to call functions from the "Wide" and "Ex" set (e.g. CreateFileW, CreateProcessW, GetComputerNameExW, etc) so you can consider it during your analysis.
 
-The default config file contains some functions in which I tested already (at least most part of them) and can say for sure they can be called by a Golang application at some point. I'll try to update it eventually.
+The default config file contains multiple functions in which I tested already (at least most part of them) and can say for sure they can be called by a Golang application at some point. I'll try to update it eventually.
 
 ## **Examples**
 
@@ -121,13 +123,14 @@ Tracing multiple functions in the DeimosC2 framework agent:
 
 ## **Future features:**
 
-* Support inspection of 32 bits files.
-* Send the tracing log output to a file by default to make it better to filter. Currently there's no separation between the target file and gftrace output. An alternative is redirect gftrace output to a file using the command line.
+- [x] Support inspection of 32 bits files.
+- [ ] Send the tracing log output to a file by default to make it better to filter. Currently there's no separation between the target file and gftrace output. An alternative is redirect gftrace output to a file using the command line.
+- [ ] Add support to files calling functions via IAT instead of the API call directly in asmstdcall.
 
 ## :warning: **Warning**
 
 * The tool inspects the target binary dynamically and it means the file being traced is executed. If you're inspecting a malware or an unknown software please make sure you do it in a controlled environment.
-* Golang programs can be very noisy depending the file and/or function being traced (e.g. VirtualAlloc is always called multiple times by the runtime package so it's not good to trace it). The tool ignores the Golang runtime initialization noise but after that it's up to the user decide what functions are better to filter in each scenario.
+* Golang programs can be very noisy depending the file and/or function being traced (e.g. VirtualAlloc is always called multiple times by the runtime package, CreateFileW is called multiple times before a call to CreateProcessW, etc). The tool ignores the Golang runtime initialization noise but after that it's up to the user decide what functions are better to filter in each scenario.
 * The tool is not a replacement for API monitor or any other API monitoring tool. It's just an alternative for Golang binaries specifically.
 
 ## **License**
