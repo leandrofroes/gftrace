@@ -72,7 +72,7 @@ LogAPICall(
 		DWORD_PTR Argv = *((DWORD_PTR *)Params + i);
 
 		//
-		// Try to guess if the address is a string and if so, print it properly and if not, print as a hex value.
+		// Try to guess if the argument is a string, an address or simply a number and print it properly.
 		//
 		if (IsWideStr((BYTE*)Argv))
 		{
@@ -87,14 +87,7 @@ LogAPICall(
 		}
 		else
 		{
-			if (IsValidMem(Argv) && Argv != 0)
-			{
-				snprintf(TempBuffer, Size, "0x%p", Argv);
-			}
-			else
-			{
-				snprintf(TempBuffer, Size, "0x%lx", Argv);
-			}
+			snprintf(TempBuffer, Size, "0x%llx", Argv);
 			strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 		}
 
@@ -144,27 +137,6 @@ IsWideStr(
 	}
 
 	return TRUE;
-}
-
-BOOL
-IsValidMem(
-	_In_ LPCVOID Addr
-	)
-{
-	if (!Addr)
-	{
-		return FALSE;
-	}
-
-	HANDLE hProcess = GetCurrentProcess();
-	MEMORY_BASIC_INFORMATION Mbi = { 0 };
-
-	if (!VirtualQueryEx(hProcess, Addr, &Mbi, sizeof(Mbi)) && GetLastError() != ERROR_INVALID_PARAMETER)
-	{
-		PrintWinError("Failed to query virtual memory", GetLastError());
-	}
-
-	return Mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD) ? FALSE : TRUE;
 }
 
 BOOL
@@ -295,12 +267,6 @@ InitTargetFuncList()
 
 	BYTE* FileContent = calloc(FileSize, 1);
 
-	if (FileContent == NULL)
-	{
-		CloseHandle(hFile);
-		PrintWinError("Failed to allocate memory for the config file content", GetLastError());
-	}
-
 	DWORD NumberOfBytesRead;
 
 	if (!ReadFile(hFile, (LPVOID)FileContent, FileSize, &NumberOfBytesRead, NULL))
@@ -324,7 +290,7 @@ InitTargetFuncList()
 		}
 	}
 
-	SIZE_T ListSize = NumberOfTargetFuncs * sizeof(ASMSTDCALL_INFO);
+	SIZE_T ListSize = NumberOfTargetFuncs * sizeof(FUNCINFO);
 
 	HANDLE hHeap = GetProcessHeap();
 
@@ -382,7 +348,7 @@ InitTargetFuncList()
 			if (TmpFuncName == NULL)
 			{
 				CloseHandle(hFile);
-				PrintError("Failed to strdup API function name");
+				PrintError("Failed to strdup the API function name");
 			}
 
 			TargetFuncsInfo[x].Name = TmpFuncName;

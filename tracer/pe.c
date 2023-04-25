@@ -66,7 +66,7 @@ GetExportDirectory(
 		return NULL;
 	}
 
-	return (IMAGE_EXPORT_DIRECTORY*)(ModuleBase + ExportDirRva);
+	return (PIMAGE_EXPORT_DIRECTORY)(ModuleBase + ExportDirRva);
 }
 
 PIMAGE_SECTION_HEADER
@@ -118,7 +118,7 @@ GetExportAddr(
 	FARPROC ExportAddr;
 
 	//
-	// Go through each loaded module and tries to find the target export address using the given export name.
+	// Go through each loaded module and try to find the target export address using the given export name.
 	//
 	while (CurrentEntry != &Peb->Ldr->InLoadOrderModuleList && CurrentEntry != NULL)
 	{
@@ -142,7 +142,7 @@ ResolveExportAddr(
 	_In_ LPCSTR ExportName
 	)
 {
-	IMAGE_EXPORT_DIRECTORY* ExportDir = GetExportDirectory(ModuleBase);
+	PIMAGE_EXPORT_DIRECTORY ExportDir = GetExportDirectory(ModuleBase);
 
 	if (ExportDir == NULL)
 	{
@@ -156,15 +156,15 @@ ResolveExportAddr(
 
 	for (SIZE_T i = 0; i < NumberOfNames; i++)
 	{
-		DWORD* NameRva = (DWORD*)(ModuleBase + AddressOfNameRva + i * sizeof(DWORD));
-		WORD* OrdinalRva = (WORD*)(ModuleBase + AddressOfNameOrdinals + i * sizeof(WORD));
-		LPCSTR Name = (LPCSTR)(ModuleBase + *NameRva);
+		DWORD NameRva = *(DWORD*)(ModuleBase + AddressOfNameRva + i * sizeof(DWORD));
+		WORD OrdinalRva = *(WORD*)(ModuleBase + AddressOfNameOrdinals + i * sizeof(WORD));
+		LPCSTR Name = (LPCSTR)(ModuleBase + NameRva);
 
 		if (IsSameStr((BYTE*)ExportName, (BYTE*)Name))
 		{
-			DWORD* ExportRva = (DWORD*)(ModuleBase + AddressOfFunctions + (*OrdinalRva) * sizeof(DWORD));
+			DWORD ExportRva = *(DWORD*)(ModuleBase + AddressOfFunctions + OrdinalRva * sizeof(DWORD));
 
-			return (FARPROC)(ModuleBase + *ExportRva);
+			return (FARPROC)(ModuleBase + ExportRva);
 		}
 	}
 

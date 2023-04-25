@@ -40,7 +40,7 @@ Init()
     InitializeCriticalSection(&CriticalSection);
 
     //
-    // Parse the user-defined API func list and initialize our global target list.
+    // Parse the user-defined API function list and initialize our global target list.
     //
     InitTargetFuncList();
 
@@ -56,7 +56,6 @@ BOOL WINAPI DllMain(
     LPVOID Reserved
     )
 {
-
     switch (Reason)
     {
         case DLL_PROCESS_ATTACH:

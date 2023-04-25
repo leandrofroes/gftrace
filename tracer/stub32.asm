@@ -8,17 +8,17 @@ ASSUME FS:NOTHING
 .code
 AsmstdcallStub PROC PUBLIC
 
-    ; Execute the patched Asmstdcall instruction.
+    ; Execute the patched Asmstdcall instructions.
     mov eax, dword ptr fs:[34h]
 
-    ; Save eax and ebx values.
+    ; Save EAX and EBX values.
     push eax
     push ebx
 
     ; Call the Asmstdcall hook.
     call hk_Asmstdcall
 
-    ; Restore ebx and eax values.
+    ; Restore EBX and EAX values.
     pop ebx
     pop eax
 

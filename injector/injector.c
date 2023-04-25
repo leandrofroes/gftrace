@@ -11,9 +11,9 @@ int main(int argc, char *argv[]) {
     PROCESS_INFORMATION ProcessInformation;
     STARTUPINFOA StartupInfo;
 
-    memset(&StartupInfo, 0, sizeof(STARTUPINFO));
     StartupInfo.cb = sizeof(STARTUPINFO);
-    memset(&ProcessInformation, 0, sizeof(PROCESS_INFORMATION));
+    ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
+    ZeroMemory(&ProcessInformation, sizeof(PROCESS_INFORMATION));
 
     //
     // Create the target process in suspended state.
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     HANDLE hThread = ProcessInformation.hThread;
 
     //
-    // Check if the target process is a Wow64 process and if so, terminate it cause we don't support it.
+    // Check if the target process is a Wow64 process and if so, terminate it cause we don't support it for now.
     //
 #ifdef _WIN64
     BOOL IsWow64Proc = FALSE;

@@ -9,13 +9,13 @@ AsmstdcallStub PROC PUBLIC
     mov eax, dword ptr [rdi+68h]
     mov qword ptr [rcx+28h], rax
 
-    ; Save rcx value.
+    ; Save RCX value.
     push rcx
 
     ; Call the Asmstdcall hook.
     call hk_Asmstdcall
 
-    ; Restore rcx value.
+    ; Restore RCX value.
     pop rcx
 
     ; Jump back to the original Asmstdcall function after the hooking point.

@@ -2,12 +2,12 @@
 #include "utils.h"
 #include "pe.h"
 
-IsReadyToLog = FALSE;
+bIsReadyToLog = FALSE;
 
 LPVOID
 PerformHook(
-	_In_ BYTE* Src,
-	_In_ BYTE* Dest,
+	_In_ DWORD_PTR Src,
+	_In_ DWORD_PTR Dest,
 	_In_ SIZE_T Len
 	)
 {
@@ -20,7 +20,7 @@ PerformHook(
 	DWORD OldProtection;
 
 	//
-	// Change memory permission of the region we want to modify the bytes.
+	// Change the memory permission of the region we want to modify the bytes.
 	//
 	if (!VirtualProtect((LPVOID)Src, Len, PAGE_EXECUTE_READWRITE, &OldProtection))
 	{
@@ -31,14 +31,14 @@ PerformHook(
 	// Write the HookBytes array with the correct dest address into the target address.
 	//
 	*(DWORD_PTR *)(HookBytes + 2) = Dest;
-	memcpy((LPVOID)Src, (LPCVOID)HookBytes, sizeof(HookBytes));
+	RtlCopyMemory((LPVOID)Src, (LPCVOID)HookBytes, sizeof(HookBytes));
 
 	//
-	// NOP the remaining hook bytes to make sure the instructions will be aligned.
+	// NOP the remaining hook bytes to make sure the instructions will be properly aligned.
 	//
 	for (SIZE_T i = HookBytesLen; i < Len; i++)
 	{
-		*(Src + i) = 0x90;
+		*((BYTE*)Src + i) = 0x90;
 	}
 
 	//
@@ -57,8 +57,8 @@ PerformHook(
 
 LPVOID
 PerformHook32(
-	_In_ BYTE* Src,
-	_In_ BYTE* Dest,
+	_In_ DWORD_PTR Src,
+	_In_ DWORD_PTR Dest,
 	_In_ SIZE_T Len
 	)
 {
@@ -66,7 +66,7 @@ PerformHook32(
 	DWORD OldProtection;
 
 	//
-	// Change memory permission of the region we want to modify the bytes.
+	// Change the memory permission of the region we want to modify the bytes.
 	//
 	if (!VirtualProtect((LPVOID)Src, Len, PAGE_READWRITE, &OldProtection))
 	{
@@ -76,13 +76,13 @@ PerformHook32(
 	DWORD RelativeAddr = (DWORD)((DWORD)Dest - (DWORD)Src) - 5;
 
 	//
-	// Write the jmp <address> bytes into the target address.
+	// Write the "jmp <address>" bytes into the target address.
 	//
-	*Src = 0xE9; // JMP
-	*(DWORD_PTR*)(Src + 1) = RelativeAddr;
+	*(BYTE*)Src = 0xE9; // JMP
+	*(DWORD_PTR *)(Src + 1) = RelativeAddr;
 
 	//
-	// NOP the remaining hook bytes to make sure the instructions will be aligned.
+	// NOP the remaining hook bytes to make sure the instructions will be properly aligned.
 	//
 	for (SIZE_T i = HookBytesLen; i < Len; i++)
 	{
@@ -131,14 +131,14 @@ HookAsmstdcall()
 	//
 	SIZE_T SectionSize = (SIZE_T)SectionHeader->Misc.VirtualSize;
 
-	if (SectionSize == 0)
+	if (!SectionSize)
 	{
 		PrintError("Golang module .text section size is zero");
 	}
 
 #ifdef _WIN64
 	//
-	// https://github.com/golang/go/blob/da564d0006e2cc286fecb3cec94ed143a2667866/src/runtime/sys_windows_amd64.s#L15
+	// https://github.com/golang/go/blob/master/src/runtime/sys_windows_amd64.s#L15
 	// 
 	CHAR TargetAddrPattern[] = {
 		0x65, 0x48, 0x8B, 0x3C, 0x25, 0x30, 0x00, 0x00, 0x00, // mov rdi, qword ptr gs:[0x30]
@@ -151,7 +151,7 @@ HookAsmstdcall()
 	SIZE_T NumberOfBytesToHook = 0x10;
 #else
 	//
-	// https://github.com/golang/go/blob/da564d0006e2cc286fecb3cec94ed143a2667866/src/runtime/sys_windows_386.s#L11
+	// https://github.com/golang/go/blob/master/src/runtime/sys_windows_386.s#L14
 	// 
 	CHAR TargetAddrPattern[] = {
 		0x64, 0x8B, 0x05, 0x34, 0x00, 0x00, 0x00,	// mov eax, dword ptr fs:[0x34]
@@ -174,18 +174,18 @@ HookAsmstdcall()
 	}
 
 	//
-	// Perform a mid function hook and sets the address to jump back when the hooking function execution is done.
+	// Perform a mid function hook and set the address to jump back when the hooking function execution is done.
 	//
 #ifdef _WIN64
-	JmpBackAddr = PerformHook((BYTE*)HookAddr, (BYTE*)AsmstdcallStub, NumberOfBytesToHook);
+	JmpBackAddr = PerformHook((DWORD_PTR)HookAddr, (DWORD_PTR)AsmstdcallStub, NumberOfBytesToHook);
 #else
-	JmpBackAddr = PerformHook32((BYTE*)HookAddr, (BYTE*)AsmstdcallStub, NumberOfBytesToHook);
+	JmpBackAddr = PerformHook32((DWORD_PTR)HookAddr, (DWORD_PTR)AsmstdcallStub, NumberOfBytesToHook);
 #endif
 }
 
 VOID
 hk_Asmstdcall(
-	_In_ LPVOID Cx
+	_In_ PLIBCALL Frame
 	)
 {
 	//
@@ -196,25 +196,25 @@ hk_Asmstdcall(
 	//
 	// Get the address of the current Windows API function to be called by asmstdcall.
 	//
-	FARPROC FuncAddr = (FARPROC)*(DWORD_PTR*)Cx;
+	DWORD_PTR FuncAddr = Frame->FuncAddr;
 
 	//
 	// Check if we are ready to start to log the API calls to the user.
 	//
-	if (IsReadyToLog)
+	if (bIsReadyToLog)
 	{
-		DWORD_PTR FuncParams = (DWORD_PTR)*((DWORD_PTR*)Cx + 2);
-		DWORD ReturnValue = (DWORD)*((DWORD_PTR*)Cx + 3);
+		DWORD_PTR Params = Frame->Argv;
+		DWORD_PTR ReturnValue = Frame->ReturnValue;
 
 		//
-		// Make sure we also trace API functions resolved after the Golang runtime initialization.
+		// Make sure we also trace API functions resolved after the Go runtime initialization.
 		//
-		if (FuncAddr == pGetProcAddress)
+		if (!memcmp((LPCVOID)FuncAddr, (LPCVOID)pGetProcAddress, sizeof(DWORD_PTR)))
 		{
 			//
-			// Get the second parameter passed to GetProcAddress() (lpProcName).
+			// Get the second parameter passed to GetProcAddress() function (i.e. lpProcName).
 			//
-			LPCSTR FuncName = (LPCSTR)(FuncParams + 1);
+			LPCSTR FuncName = (LPCSTR)(Params + 1);
 
 			//
 			// Go through our target function list and check if the function address resolved by GetProcAddress 
@@ -236,26 +236,28 @@ hk_Asmstdcall(
 		{
 			FARPROC WantedFuncAddr = TargetFuncsInfo[i].Addr;
 
-			if (FuncAddr == WantedFuncAddr)
+			if (WantedFuncAddr)
 			{
-				DWORD FuncArgc = (DWORD)*((DWORD_PTR*)Cx + 1);
-				LogAPICall(TargetFuncsInfo[i].Name, FuncArgc, FuncParams, ReturnValue);
+				if (FuncAddr == WantedFuncAddr)
+				{
+					DWORD Argc = Frame->Argc;
+					LogAPICall(TargetFuncsInfo[i].Name, Argc, Params, (DWORD)ReturnValue);
+				}
 			}
 		}
 	}
 
 	//
 	// Check if we should start to log the API calls by checking if the function called by Asmstdcall is GetCommandLineW().
-	// Seems this function is part of the Golang "os" package initialization and is called before the main so we use it as a sentinel. 
+	// This function is part of the "os" package initialization and is called before the main package so we use it as a sentinel. 
 	// 
-	// TODO: If the binary doesn't use the "os" package it might not work so we need to find something more reliable.
 	//
-	if (FuncAddr == pGetCommandLineW && !IsReadyToLog)
+	if (!memcmp((LPCVOID)FuncAddr, (LPCVOID)pGetCommandLineW, sizeof(DWORD_PTR)) && !bIsReadyToLog)
 	{
-		IsReadyToLog = TRUE;
+		bIsReadyToLog = TRUE;
 
 		//
-		// Resolve the addresses of the user-defined functions to trace and fills our TargetFuncInfo global list.
+		// Resolve the address of the user-defined functions to trace and fills our TargetFuncInfo global list.
 		//
 		ResolveTargetFuncListAddresses();
 
