@@ -45,6 +45,11 @@ Init()
     InitTargetFuncList();
 
     //
+    // Initialize our IAT deny list.
+    //
+    InitIATDenyList();
+
+    //
     // Perform the asmstdcall hook.
     //
     HookAsmstdcall();

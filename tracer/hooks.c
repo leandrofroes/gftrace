@@ -199,6 +199,17 @@ hk_Asmstdcall(
 	DWORD_PTR FuncAddr = Frame->FuncAddr;
 
 	//
+	// Make sure we avoid the IAT entries not set by the user.
+	//
+	for (SIZE_T i = 0; i < NumberOfIATEntries; i++)
+	{
+		if (FuncAddr == IatInfo[i].Addr && !IatInfo[i].IsAllowedToLog)
+		{
+			goto Exit;
+		}
+	}
+
+	//
 	// Check if we are ready to start to log the API calls to the user.
 	//
 	if (bIsReadyToLog)
@@ -209,7 +220,7 @@ hk_Asmstdcall(
 		//
 		// Make sure we also trace API functions resolved after the Go runtime initialization.
 		//
-		if (!memcmp((LPCVOID)FuncAddr, (LPCVOID)pGetProcAddress, sizeof(DWORD_PTR)))
+		if (FuncAddr == (DWORD_PTR)pGetProcAddress)
 		{
 			//
 			// Get the second parameter passed to GetProcAddress() function (i.e. lpProcName).
@@ -222,9 +233,68 @@ hk_Asmstdcall(
 			//
 			for (SIZE_T i = 0; i < NumberOfTargetFuncs; i++)
 			{
-				if (!strcmp(TargetFuncsInfo[i].Name, FuncName) && TargetFuncsInfo[i].Addr == NULL)
+				if (!strncmp(TargetFuncsInfo[i].Name, FuncName, strlen(FuncName) + 1) && TargetFuncsInfo[i].Addr == NULL)
 				{
 					TargetFuncsInfo[i].Addr = (FARPROC)ReturnValue;
+				}
+			}
+		}
+
+		//
+		// Check if the instructions in the received address is a JMP. If that's the case probably we are in a jump table.
+		// Programs compiled with cgo/gcc usually would have this table containing a JMP to the real IAT entry so we need to handle these cases.
+		// 
+		// The JMP could be the IAT address address directly (x86) or an offset based on the current address (x64) hence we need to check our arch.
+		//
+		if (*(BYTE*)FuncAddr == 0xFF && *((BYTE*)FuncAddr + 1) == 0x25)
+		{
+
+#ifdef _WIN64
+			DWORD offset = *(DWORD*)(FuncAddr + 2);
+			FARPROC RealFuncEntry = *(FARPROC)(FuncAddr + offset + 6);
+#else
+			FARPROC RealFuncEntry = *(FARPROC)(FuncAddr + 2);
+#endif
+			if (RealFuncEntry)
+			{
+				BOOL bFuncFound = FALSE;
+
+				//
+				// Check if the function address is present in the IAT to make sure we get the correct address.
+				//
+				if (HasImport(RealFuncEntry))
+				{
+					//
+					// Get the name of the imported function using it's IAT address.
+					//
+					LPCSTR FuncName = GetImportName(RealFuncEntry);
+
+					if (FuncName != NULL)
+					{
+						for (SIZE_T i = 0; i < NumberOfTargetFuncs; i++)
+						{
+							if (!strncmp(TargetFuncsInfo[i].Name, FuncName, strlen(FuncName) + 1))
+							{
+								TargetFuncsInfo[i].Addr = (FARPROC)FuncAddr;
+								bFuncFound = TRUE;
+								break;
+							}
+						}
+
+						for (SIZE_T i = 0; i < NumberOfIATEntries; i++)
+						{
+							if (!IatInfo[i].Addr)
+							{
+								if (bFuncFound)
+								{
+									IatInfo[i].IsAllowedToLog = TRUE;
+								}
+
+								IatInfo[i].Addr = FuncAddr;
+								break;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -238,10 +308,20 @@ hk_Asmstdcall(
 
 			if (WantedFuncAddr)
 			{
-				if (FuncAddr == WantedFuncAddr)
+				if (FuncAddr == (DWORD_PTR)WantedFuncAddr)
 				{
-					DWORD Argc = Frame->Argc;
-					LogAPICall(TargetFuncsInfo[i].Name, Argc, Params, (DWORD)ReturnValue);
+					if (!strcmp(TargetFuncsInfo[i].Name, "GetProcAddress"))
+					{
+						//
+						// Since this is a special case we have a function to print it.
+						//
+						LogGetProcAddressCall(Params, (FARPROC)ReturnValue);
+					}
+					else
+					{
+						DWORD Argc = Frame->Argc;
+						LogAPICall(TargetFuncsInfo[i].Name, Argc, Params, (DWORD)ReturnValue);
+					}
 				}
 			}
 		}
@@ -252,7 +332,7 @@ hk_Asmstdcall(
 	// This function is part of the "os" package initialization and is called before the main package so we use it as a sentinel. 
 	// 
 	//
-	if (!memcmp((LPCVOID)FuncAddr, (LPCVOID)pGetCommandLineW, sizeof(DWORD_PTR)) && !bIsReadyToLog)
+	if (FuncAddr == (DWORD_PTR)pGetCommandLineW && !bIsReadyToLog)
 	{
 		bIsReadyToLog = TRUE;
 
@@ -276,6 +356,8 @@ hk_Asmstdcall(
 		//
 		printf("\n\n");
 	}
+
+	Exit:
 
 	//
 	// Release ownership of the critical section.

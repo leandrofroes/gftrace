@@ -109,6 +109,39 @@ LogAPICall(
 	free(TempBuffer);
 }
 
+VOID
+LogGetProcAddressCall(
+	_In_ DWORD_PTR Params,
+	_In_ FARPROC ReturnValue
+	)
+{
+	char* TempBuffer = calloc(MAX_STR_SIZE, 1);
+	char FinalString[MAX_STR_SIZE] = { 0 };
+	SIZE_T Size = MAX_STR_SIZE;
+
+	snprintf(TempBuffer, Size, "- GetProcAddress(");
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
+
+	HMODULE ModuleBase = (HMODULE)*((DWORD_PTR*)Params + 0);
+
+	snprintf(TempBuffer, Size, "0x%llx, ", ModuleBase);
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
+
+	LPCSTR ExportName = (LPCSTR)*((DWORD_PTR*)Params + 1);
+
+	snprintf(TempBuffer, Size, "\"%s\"", ExportName);
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
+	snprintf(TempBuffer, Size, ") = 0x%llx", ReturnValue);
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
+
+	//
+	// Print the final log entry string.
+	//
+	puts(FinalString);
+
+	free(TempBuffer);
+}
+
 /*
 * Since we are not using API signatures to know what is the type of each parameter we need to try to guess what it is.
 * That's not good in general and handle these scenarios can be a pain. The implementation bellow is very bad but at
@@ -370,5 +403,58 @@ ResolveTargetFuncListAddresses()
 	{
 		FARPROC ExportAddr = GetExportAddr(TargetFuncsInfo[i].Name);
 		TargetFuncsInfo[i].Addr = ExportAddr;
+	}
+}
+
+VOID
+InitIATDenyList()
+{
+	HMODULE ModuleBase = GetModuleHandleW(NULL);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((DWORD_PTR)ModuleBase);
+
+	if (ImportDesc == NULL)
+	{
+		PrintError("Import Descriptor is NULL");
+	}
+
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)ModuleBase + ImportDesc->FirstThunk);
+
+	if (!FirstThunk)
+	{
+		PrintError("First Thunk is 0");
+	}
+
+	NumberOfIATEntries = 0;
+	SIZE_T i = 0;
+
+	while (ImportDesc[i++].FirstThunk)
+	{
+		while (FirstThunk->u1.Function)
+		{
+			NumberOfIATEntries++;
+			FirstThunk++;
+		}
+	}
+
+	HANDLE hHeap = GetProcessHeap();
+
+	if (hHeap == NULL)
+	{
+		PrintWinError("Failed to get process heap", GetLastError());
+	}
+
+	SIZE_T ListSize = NumberOfIATEntries * sizeof(IATINFO);
+
+	IatInfo = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, ListSize);
+
+	if (IatInfo == NULL)
+	{
+		PrintWinError("Failed to allocate memory for the deny function list", GetLastError());
+	}
+
+	for (SIZE_T i = 0; i < NumberOfIATEntries; i++)
+	{
+		IatInfo[i].Addr = 0;
+		IatInfo[i].IsAllowedToLog = FALSE;
 	}
 }

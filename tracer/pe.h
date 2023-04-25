@@ -60,3 +60,6 @@ PIMAGE_SECTION_HEADER GetSectionHeader(_In_ DWORD_PTR ModuleBase, _In_ BYTE* Sec
 PIMAGE_EXPORT_DIRECTORY GetExportDirectory(_In_ DWORD_PTR ModuleBase);
 FARPROC GetExportAddr(_In_ LPCSTR ExportName);
 FARPROC ResolveExportAddr(_In_ DWORD_PTR ModuleBase, _In_ LPCSTR ExportName);
+PIMAGE_IMPORT_DESCRIPTOR GetImportDesc(_In_ DWORD_PTR ModuleBase);
+BOOL HasImport(_In_ FARPROC ImportAddr);
+LPCSTR GetImportName(_In_ FARPROC ImportAddr);

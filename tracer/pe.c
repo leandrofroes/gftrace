@@ -69,6 +69,30 @@ GetExportDirectory(
 	return (PIMAGE_EXPORT_DIRECTORY)(ModuleBase + ExportDirRva);
 }
 
+PIMAGE_IMPORT_DESCRIPTOR
+GetImportDesc(
+	_In_ DWORD_PTR ModuleBase
+	)
+{
+#ifdef _WIN64
+	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
+	IMAGE_OPTIONAL_HEADER64 OptHeader = NtHeader->OptionalHeader;
+#else
+	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32(ModuleBase);
+	IMAGE_OPTIONAL_HEADER32 OptHeader = NtHeader->OptionalHeader;
+#endif
+
+	IMAGE_DATA_DIRECTORY ImportDataDir = OptHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+	DWORD ImportDirRva = ImportDataDir.VirtualAddress;
+
+	if (!ImportDirRva)
+	{
+		return NULL;
+	}
+
+	return (PIMAGE_IMPORT_DESCRIPTOR)(ModuleBase + ImportDirRva);
+}
+
 PIMAGE_SECTION_HEADER
 GetSectionHeader(
 	_In_ DWORD_PTR ModuleBase,
@@ -169,4 +193,71 @@ ResolveExportAddr(
 	}
 
 	return NULL;
+}
+
+LPCSTR
+GetImportName(
+	_In_ FARPROC ImportAddr
+	)
+{
+	HMODULE ModuleBase = GetModuleHandle(NULL);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((DWORD_PTR)ModuleBase);
+
+	if (ImportDesc == NULL)
+	{
+		return NULL;
+	}
+
+	PIMAGE_THUNK_DATA OriginalFirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)ModuleBase + ImportDesc->OriginalFirstThunk);
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)ModuleBase + ImportDesc->FirstThunk);
+
+	SIZE_T i = 0;
+
+	while (ImportDesc[i++].OriginalFirstThunk)
+	{
+		while (OriginalFirstThunk->u1.Function)
+		{
+			if (!memcmp(&FirstThunk->u1.Function, ImportAddr, sizeof(FARPROC)))
+			{
+				PIMAGE_IMPORT_BY_NAME ImportName = (PIMAGE_IMPORT_BY_NAME)((DWORD_PTR)ModuleBase + OriginalFirstThunk->u1.AddressOfData);
+				return (LPCSTR)ImportName->Name;
+			}
+			OriginalFirstThunk++;
+			FirstThunk++;
+		}
+	}
+
+	return NULL;
+}
+
+BOOL
+HasImport(
+	_In_ FARPROC ImportAddr
+	)
+{
+	HMODULE ModuleBase = GetModuleHandleW(NULL);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((DWORD_PTR)ModuleBase);
+
+	if (ImportDesc == NULL)
+	{
+		return FALSE;
+	}
+
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)ModuleBase + ImportDesc->FirstThunk);
+
+	SIZE_T i = 0;
+
+	while (ImportDesc[i++].FirstThunk)
+	{
+		while (FirstThunk->u1.Function)
+		{
+			if (!memcmp(&FirstThunk->u1.Function, ImportAddr, sizeof(FARPROC)))
+			{
+				return TRUE;
+			}
+			FirstThunk++;
+		}
+	}
+
+	return FALSE;
 }

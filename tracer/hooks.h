@@ -1,7 +1,13 @@
 #pragma once
 
 #include <windows.h>
-#include "utils.h"
+
+typedef struct LIBCALL {
+	DWORD_PTR FuncAddr;
+	DWORD Argc;
+	DWORD_PTR Argv;
+	DWORD_PTR ReturnValue;
+} LIBCALL, *PLIBCALL;
 
 extern VOID AsmstdcallStub(VOID);
 
