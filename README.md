@@ -13,11 +13,11 @@ The Go runtime package contains a function called [asmstdcall](https://github.co
 Asmstdcall receives a single parameter which is pointer to something similar to the following structure:
 
 ```
-struct CX {
-	FARPROC Addr;
+struct LIBCALL {
+	DWORD_PTR Addr;
 	DWORD Argc;
-	LPVOID Argv;
-	VOID ReturnValue;
+	DWORD_PTR Argv;
+	DWORD_PTR ReturnValue;
 	
 	[...]
 }
@@ -124,14 +124,13 @@ Tracing multiple functions in the DeimosC2 framework agent:
 ## **Future features:**
 
 - [x] Support inspection of 32 bits files.
+- [x] Add support to files calling functions via the "IAT jmp table" instead of the API call directly in asmstdcall.
 - [ ] Send the tracing log output to a file by default to make it better to filter. Currently there's no separation between the target file and gftrace output. An alternative is redirect gftrace output to a file using the command line.
-- [ ] Add support to files calling functions via the "IAT jmp table" instead of the API call directly in asmstdcall.
 
 ## :warning: **Warning**
 
 * The tool inspects the target binary dynamically and it means the file being traced is executed. If you're inspecting a malware or an unknown software please make sure you do it in a controlled environment.
-* Golang programs can be very noisy depending the file and/or function being traced (e.g. VirtualAlloc is always called multiple times by the runtime package, CreateFileW is called multiple times before a call to CreateProcessW, etc). The tool ignores the Golang runtime initialization noise but after that it's up to the user decide what functions are better to filter in each scenario.
-* The tool is not a replacement for API monitor or any other API monitoring tool. It's just an alternative for Golang binaries specifically.
+* Golang programs can be very noisy depending the file and/or function being traced (e.g. VirtualAlloc is always called multiple times by the runtime package, CreateFileW is called multiple times before a call to CreateProcessW, etc). The tool ignores the Golang runtime initialization noise but after that it's up to the user to decide what functions are better to filter in each scenario.
 
 ## **License**
 
