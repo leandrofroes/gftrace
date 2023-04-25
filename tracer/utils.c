@@ -87,7 +87,14 @@ LogAPICall(
 		}
 		else
 		{
-			snprintf(TempBuffer, Size, "0x%lx", Argv);
+			if (IsValidMem(Argv) && Argv != 0)
+			{
+				snprintf(TempBuffer, Size, "0x%p", Argv);
+			}
+			else
+			{
+				snprintf(TempBuffer, Size, "0x%lx", Argv);
+			}
 			strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 		}
 
@@ -137,6 +144,27 @@ IsWideStr(
 	}
 
 	return TRUE;
+}
+
+BOOL
+IsValidMem(
+	_In_ LPCVOID Addr
+	)
+{
+	if (!Addr)
+	{
+		return FALSE;
+	}
+
+	HANDLE hProcess = GetCurrentProcess();
+	MEMORY_BASIC_INFORMATION Mbi = { 0 };
+
+	if (!VirtualQueryEx(hProcess, Addr, &Mbi, sizeof(Mbi)) && GetLastError() != ERROR_INVALID_PARAMETER)
+	{
+		PrintWinError("Failed to query virtual memory", GetLastError());
+	}
+
+	return Mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD) ? FALSE : TRUE;
 }
 
 BOOL
