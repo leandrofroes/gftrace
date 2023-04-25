@@ -8,7 +8,7 @@ A command line Windows API tracing tool for Golang binaries.
 
 Although Golang programs contains a lot of nuances regarding the way they are built and their behavior in runtime they still need to interact with the OS layer and that means at some point they do need to call functions from the Windows API.
 
-The Golang runtime package contains a function called [asmstdcall](https://github.com/golang/go/blob/2c7856087a7b3864284f908c0a091fd5af419d03/src/runtime/sys_windows_amd64.s#L15) and this function is a kind of "gateway" used to interact with the Windows API. Since it's expected this function to call the Windows API functions we can assume it needs to have access to information such as the address of the function and it's parameters, and this is where things start to get more interesting.
+The Go runtime package contains a function called [asmstdcall](https://github.com/golang/go/blob/2c7856087a7b3864284f908c0a091fd5af419d03/src/runtime/sys_windows_amd64.s#L15) and this function is a kind of "gateway" used to interact with the Windows API. Since it's expected this function to call the Windows API functions we can assume it needs to have access to information such as the address of the function and it's parameters, and this is where things start to get more interesting.
 
 Asmstdcall receives a single parameter which is pointer to something similar to the following structure:
 
@@ -27,9 +27,9 @@ Some of these fields are filled after the API function is called, like the retur
 
 The gftrace leverages asmstdcall and the way it works to monitor specific fields of the mentioned struct and log it to the user. The tool is capable of log the function name, it's parameters and also the return value of each Windows function called by a Golang application. All of it with no need to hook a single API function or have a signature for it.
 
-The tool also tries to ignore all the noise from Golang runtime initialization and only log functions called after it (i.e. functions from the main package).
+The tool also tries to ignore all the noise from the Go runtime initialization and only log functions called after it (i.e. functions from the main package).
 
-Note: I have plans to write more details about it all at some point in the future.
+If you want to know more about this project and research check the [blogpost](https://leandrofroes.github.io/posts/An-in-depth-look-at-Golang-Windows-calls/).
 
 ## **Installation**
 
@@ -125,7 +125,7 @@ Tracing multiple functions in the DeimosC2 framework agent:
 
 - [x] Support inspection of 32 bits files.
 - [ ] Send the tracing log output to a file by default to make it better to filter. Currently there's no separation between the target file and gftrace output. An alternative is redirect gftrace output to a file using the command line.
-- [ ] Add support to files calling functions via IAT instead of the API call directly in asmstdcall.
+- [ ] Add support to files calling functions via the "IAT jmp table" instead of the API call directly in asmstdcall.
 
 ## :warning: **Warning**
 
