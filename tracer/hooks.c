@@ -52,7 +52,7 @@ PerformHook(
 	//
 	// Return the jump back address (i.e. the address to return after our hook is executed). 
 	//
-	return (LPVOID)((DWORD)Src + Len);
+	return (LPVOID)(Src + Len);
 }
 
 LPVOID
@@ -73,7 +73,7 @@ PerformHook32(
 		PrintWinError("Failed setting the hook memory region protection", GetLastError());
 	}
 
-	DWORD RelativeAddr = (DWORD)((DWORD)Dest - (DWORD)Src) - 5;
+	DWORD_PTR RelativeAddr = (Dest - Src) - 5;
 
 	//
 	// Write the "jmp <address>" bytes into the target address.
@@ -100,7 +100,7 @@ PerformHook32(
 	//
 	// Return the jump back address (i.e. the address to return after our hook is executed). 
 	//
-	return (LPVOID)((DWORD)Src + Len);
+	return (LPVOID)(Src + Len);
 }
 
 VOID
