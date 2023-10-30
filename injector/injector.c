@@ -1,12 +1,21 @@
 #include <stdio.h>
 #include <windows.h>
 
-int main(int argc, char *argv[]) {
-    if (argc != 2)
+int main(int argc, char **argv)
+{
+    if (argc < 2)
     {
-        puts("Usage: gftrace.exe <target_file>");
+        printf("Usage: gftrace.exe <file> <params>\n");
         return 1;
     }
+
+    LPSTR CmdLine = GetCommandLineA();
+    LPSTR ProcCmdLine = strchr(CmdLine, 0x20);
+
+    //
+    // Ignore all the spaces next to argv[0]
+    //
+    while (*++ProcCmdLine == 0x20);
 
     PROCESS_INFORMATION ProcessInformation;
     STARTUPINFOA StartupInfo;
@@ -18,7 +27,7 @@ int main(int argc, char *argv[]) {
     //
     // Create the target process in suspended state.
     //
-    if (!CreateProcessA(NULL, (LPSTR)argv[1], NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &StartupInfo, &ProcessInformation)) 
+    if (!CreateProcessA(NULL, ProcCmdLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &StartupInfo, &ProcessInformation))
     {
         printf("[!] Failed to create the target process.\n[!] Error code: %u\n", GetLastError());
         return 1;
@@ -48,8 +57,8 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    char LibFullPath[MAX_PATH] = { 0 };
-    char CurrentModuleFilepath[MAX_PATH] = { 0 };
+    char LibFullPath[MAX_PATH] = {0};
+    char CurrentModuleFilepath[MAX_PATH] = {0};
 
     DWORD Len = GetModuleFileNameA(GetModuleHandleA(NULL), CurrentModuleFilepath, MAX_PATH);
 
@@ -71,7 +80,8 @@ int main(int argc, char *argv[]) {
 
     SIZE_T i = 0;
 
-    do {
+    do
+    {
         LibFullPath[i] = CurrentModuleFilepath[i];
         i++;
     } while (CurrentModuleFilepath[i] != '\0');
@@ -92,7 +102,7 @@ int main(int argc, char *argv[]) {
     //
     // Check if the gftrace.dll file exists in the gftrace.exe directory.
     //
-    if (GetFileAttributesA((LPCSTR)LibFullPath) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
+    if (GetFileAttributesA((LPCSTR) LibFullPath) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
     {
         printf("[!] Failed to find the gftrace DLL file in the gftrace.exe directory.\n");
         TerminateProcess(hProcess, 0);
@@ -138,7 +148,7 @@ int main(int argc, char *argv[]) {
     //
     // Write gftrace DLL full path into the target process.
     //
-    if (!WriteProcessMemory(hProcess, LibFullPathRemoteAddr, (LPCVOID)LibFullPath, Size, NULL))
+    if (!WriteProcessMemory(hProcess, LibFullPathRemoteAddr, (LPCVOID) LibFullPath, Size, NULL))
     {
         printf("[!] Failed to write to the target process memory.\n[!] Error code: %u\n", GetLastError());
         TerminateProcess(hProcess, 0);
@@ -150,7 +160,7 @@ int main(int argc, char *argv[]) {
     //
     // Create a thread in the target process pointing to LoadLibraryA() to load the gftrace DLL into the target process address space.
     //
-    HANDLE hInjectionThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)pLoadLibraryA, (LPVOID)LibFullPathRemoteAddr, 0, &ThreadId);
+    HANDLE hInjectionThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE) pLoadLibraryA, (LPVOID) LibFullPathRemoteAddr, 0, &ThreadId);
 
     if (hInjectionThread == NULL)
     {

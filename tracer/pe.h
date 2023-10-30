@@ -15,7 +15,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
         LIST_ENTRY InProgressLinks;
     };
     PVOID DllBase;
-}LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
+}LDR_DATA_TABLE_ENTRY, * PLDR_DATA_TABLE_ENTRY;
 
 typedef struct _PEB_LDR_DATA
 {
@@ -25,7 +25,7 @@ typedef struct _PEB_LDR_DATA
     LIST_ENTRY InLoadOrderModuleList;
     LIST_ENTRY InMemoryOrderModuleList;
     LIST_ENTRY InInitializationOrderModuleList;
-} PEB_LDR_DATA, *PPEB_LDR_DATA;
+} PEB_LDR_DATA, * PPEB_LDR_DATA;
 
 typedef struct _PEB
 {
@@ -52,7 +52,7 @@ typedef struct _PEB
 
     PVOID ImageBaseAddress;
     PPEB_LDR_DATA Ldr;
-} PEB, *PPEB;
+} PEB, * PPEB;
 
 PIMAGE_NT_HEADERS64 GetNtHeader(_In_ ULONG_PTR ModuleBase);
 PIMAGE_NT_HEADERS32 GetNtHeader32(_In_ ULONG_PTR ModuleBase);

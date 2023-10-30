@@ -2,12 +2,13 @@
 
 #include <windows.h>
 
-typedef struct LIBCALL {
+typedef struct LIBCALL
+{
 	ULONG_PTR FuncAddr;
 	DWORD Argc;
 	ULONG_PTR Argv;
 	ULONG_PTR ReturnValue;
-} LIBCALL, *PLIBCALL;
+} LIBCALL, * PLIBCALL;
 
 extern VOID AsmstdcallStub(VOID);
 

@@ -4,20 +4,20 @@
 VOID
 PrintError(
 	_In_ LPCSTR Msg
-	)
+)
 {
-	printf( "\n[!] Error: %s!\n", Msg );
-	ExitProcess( 0 );
+	printf("\n[!] Error: %s!\n", Msg);
+	ExitProcess(0);
 }
 
 VOID
 PrintWinError(
 	_In_ LPCSTR Msg,
 	_In_ DWORD ErrorCode
-	)
+)
 {
-	printf( "\n[!] Error: %s!\n[!] Error code: %u\n", Msg, ErrorCode );
-	ExitProcess( 0 );
+	printf("\n[!] Error: %s!\n[!] Error code: %u\n", Msg, ErrorCode);
+	ExitProcess(0);
 }
 
 ULONG_PTR
@@ -26,23 +26,23 @@ FindPattern(
 	_In_ SIZE_T Size,
 	_In_ LPCSTR BytePattern,
 	_In_ LPCSTR Mask
-	)
+)
 {
-	SIZE_T PatternSize = strlen( Mask );
+	SIZE_T PatternSize = strlen(Mask);
 	BOOL bFound;
 
-	for ( SIZE_T i = 0; i < Size - PatternSize; i++ )
+	for (SIZE_T i = 0; i < Size - PatternSize; i++)
 	{
 		bFound = TRUE;
 
-		for ( SIZE_T j = 0; j < PatternSize; j++ )
+		for (SIZE_T j = 0; j < PatternSize; j++)
 		{
-			bFound &= Mask[ j ] == '?' || BytePattern[ j ] == *( ( LPCSTR ) BaseAddr + i + j );
+			bFound &= Mask[j] == '?' || BytePattern[j] == *((LPCSTR) BaseAddr + i + j);
 		}
 
-		if ( bFound )
+		if (bFound)
 		{
-			return ( ULONG_PTR ) ( BaseAddr + i );
+			return (ULONG_PTR) (BaseAddr + i);
 		}
 	}
 
@@ -55,91 +55,91 @@ LogAPICall(
 	_In_ DWORD Argc,
 	_In_ ULONG_PTR Params,
 	_In_ DWORD ReturnValue
-	)
+)
 {
-	char* TempBuffer = calloc( MAX_STR_SIZE, 1 );
-	char FinalString[ MAX_STR_SIZE ] = { 0 };
+	char* TempBuffer = calloc(MAX_STR_SIZE, 1);
+	char FinalString[MAX_STR_SIZE] = {0};
 	SIZE_T Size = MAX_STR_SIZE;
 
-	snprintf( TempBuffer, Size, "- %s(", FuncName );
-	strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
+	snprintf(TempBuffer, Size, "- %s(", FuncName);
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
 	//
 	// Build the log entry string using the provided info (i.e. FuncName, Argc, Params, ReturnValue).
 	//
-	for ( SIZE_T i = 0; i < Argc; i++ )
+	for (SIZE_T i = 0; i < Argc; i++)
 	{
-		ULONG_PTR Argv = *( ( ULONG_PTR* ) Params + i );
+		ULONG_PTR Argv = *((ULONG_PTR*) Params + i);
 
 		//
 		// Try to guess if the argument is a string, an address or simply a number and print it properly.
 		//
-		if ( IsWideStr( ( BYTE* ) Argv ) )
+		if (IsWideStr((BYTE*) Argv))
 		{
-			LPCWSTR StrArg = ( LPCWSTR ) Argv;
-			if ( wcslen( ( LPCWSTR ) Argv ) > 2048 )
+			LPCWSTR StrArg = (LPCWSTR) Argv;
+			if (wcslen((LPCWSTR) Argv) > 2048)
 			{
 				StrArg = L"[string is too large]";
 			}
 
-			snprintf( TempBuffer, Size, "\"%ws\"", StrArg );
-			strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
+			snprintf(TempBuffer, Size, "\"%ws\"", StrArg);
+			strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 		}
 		else
 		{
-			snprintf( TempBuffer, Size, "0x%llx", Argv );
-			strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
+			snprintf(TempBuffer, Size, "0x%llx", Argv);
+			strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 		}
 
-		if ( Argc > i + 1 )
+		if (Argc > i + 1)
 		{
-			snprintf( TempBuffer, Size, ", " );
-			strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
+			snprintf(TempBuffer, Size, ", ");
+			strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 		}
 	}
 
-	snprintf( TempBuffer, Size, ") = 0x%lx (%d)", ReturnValue, ( INT ) ReturnValue );
-	strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
+	snprintf(TempBuffer, Size, ") = 0x%lx (%d)", ReturnValue, (INT) ReturnValue);
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
 	//
 	// Print the final log entry string.
 	//
-	puts( FinalString );
+	puts(FinalString);
 
-	free( TempBuffer );
+	free(TempBuffer);
 }
 
 VOID
 LogGetProcAddressCall(
 	_In_ ULONG_PTR Params,
 	_In_ FARPROC ReturnValue
-	)
+)
 {
-	char* TempBuffer = calloc( MAX_STR_SIZE, 1 );
-	char FinalString[ MAX_STR_SIZE ] = { 0 };
+	char* TempBuffer = calloc(MAX_STR_SIZE, 1);
+	char FinalString[MAX_STR_SIZE] = {0};
 	SIZE_T Size = MAX_STR_SIZE;
 
-	snprintf( TempBuffer, Size, "- GetProcAddress(" );
-	strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
+	snprintf(TempBuffer, Size, "- GetProcAddress(");
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
-	HMODULE ModuleBase = ( HMODULE ) * ( ( ULONG_PTR* ) Params + 0 );
+	HMODULE ModuleBase = (HMODULE) * ((ULONG_PTR*) Params + 0);
 
-	snprintf( TempBuffer, Size, "0x%llx, ", ModuleBase );
-	strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
+	snprintf(TempBuffer, Size, "0x%llx, ", ModuleBase);
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
-	LPCSTR ExportName = ( LPCSTR ) * ( ( ULONG_PTR* ) Params + 1 );
+	LPCSTR ExportName = (LPCSTR) * ((ULONG_PTR*) Params + 1);
 
-	snprintf( TempBuffer, Size, "\"%s\"", ExportName );
-	strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
-	snprintf( TempBuffer, Size, ") = 0x%llx", ReturnValue );
-	strncat_s( FinalString, Size, TempBuffer, _TRUNCATE );
+	snprintf(TempBuffer, Size, "\"%s\"", ExportName);
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
+	snprintf(TempBuffer, Size, ") = 0x%llx", ReturnValue);
+	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
 	//
 	// Print the final log entry string.
 	//
-	puts( FinalString );
+	puts(FinalString);
 
-	free( TempBuffer );
+	free(TempBuffer);
 }
 
 /*
@@ -152,18 +152,18 @@ LogGetProcAddressCall(
 BOOL
 IsWideStr(
 	_In_ BYTE* Addr
-	)
+)
 {
-	if ( !IsValidStrMem( ( LPCVOID ) Addr ) )
+	if (!IsValidStrMem((LPCVOID) Addr))
 	{
 		return FALSE;
 	}
 
 	WORD RequiredLen = 6;
 
-	for ( SIZE_T i = 0; i < RequiredLen; i += 2 )
+	for (SIZE_T i = 0; i < RequiredLen; i += 2)
 	{
-		if ( Addr[ i ] > 0x7e || Addr[ i ] < 0x20 || Addr[ i + 1 ] != '\0' )
+		if (Addr[i] > 0x7e || Addr[i] < 0x20 || Addr[i + 1] != '\0')
 		{
 			return FALSE;
 		}
@@ -175,19 +175,19 @@ IsWideStr(
 BOOL
 IsValidStrMem(
 	_In_ LPCVOID Addr
-	)
+)
 {
-	if ( !Addr )
+	if (!Addr)
 	{
 		return FALSE;
 	}
 
 	HANDLE hProcess = GetCurrentProcess();
-	MEMORY_BASIC_INFORMATION Mbi = { 0 };
+	MEMORY_BASIC_INFORMATION Mbi = {0};
 
-	if ( !VirtualQueryEx( hProcess, Addr, &Mbi, sizeof( Mbi ) ) && GetLastError() != ERROR_INVALID_PARAMETER )
+	if (!VirtualQueryEx(hProcess, Addr, &Mbi, sizeof(Mbi)) && GetLastError() != ERROR_INVALID_PARAMETER)
 	{
-		PrintWinError( "Failed to query virtual memory", GetLastError() );
+		PrintWinError("Failed to query virtual memory", GetLastError());
 	}
 
 	return Mbi.Protect == PAGE_READWRITE;
@@ -197,30 +197,30 @@ BOOL
 IsSameStr(
 	_In_ BYTE* Str1,
 	_In_ BYTE* Str2
-	)
+)
 {
-	if ( !Str1 || !Str2 )
+	if (!Str1 || !Str2)
 	{
 		return FALSE;
 	}
 
-	SIZE_T StrLen1 = strlen( Str1 );
-	SIZE_T StrLen2 = strlen( Str2 );
+	SIZE_T StrLen1 = strlen(Str1);
+	SIZE_T StrLen2 = strlen(Str2);
 
-	if ( StrLen1 != StrLen2 )
+	if (StrLen1 != StrLen2)
 	{
 		return FALSE;
 	}
 
-	for ( SIZE_T i = 0; i < StrLen1; i++ )
+	for (SIZE_T i = 0; i < StrLen1; i++)
 	{
-		char c1 = Str1[ i ];
-		char c2 = Str2[ i ];
+		char c1 = Str1[i];
+		char c2 = Str2[i];
 
-		c1 = tolower( c1 );
-		c2 = tolower( c2 );
+		c1 = tolower(c1);
+		c2 = tolower(c2);
 
-		if ( c1 != c2 )
+		if (c1 != c2)
 		{
 			return FALSE;
 		}
@@ -232,8 +232,8 @@ IsSameStr(
 VOID
 InitTargetFuncList()
 {
-	char ConfigFileFullPath[ MAX_PATH ] = { 0 };
-	char CurrentModuleFilepath[ MAX_PATH ] = { 0 };
+	char ConfigFileFullPath[MAX_PATH] = {0};
+	char CurrentModuleFilepath[MAX_PATH] = {0};
 
 #ifdef _WIN64
 	LPCSTR ModuleName = "gftrace.dll";
@@ -241,71 +241,72 @@ InitTargetFuncList()
 	LPCSTR ModuleName = "gftrace32.dll";
 #endif
 
-	DWORD Len = GetModuleFileNameA( GetModuleHandleA( ModuleName ), CurrentModuleFilepath, MAX_PATH );
+	DWORD Len = GetModuleFileNameA(GetModuleHandleA(ModuleName), CurrentModuleFilepath, MAX_PATH);
 
-	if ( !Len )
+	if (!Len)
 	{
-		PrintWinError( "Failed to get the gftrace.dll module filepath", GetLastError() );
+		PrintWinError("Failed to get the gftrace.dll module filepath", GetLastError());
 	}
 
-	for ( SIZE_T i = Len - 1; i > 0; i-- )
+	for (SIZE_T i = Len - 1; i > 0; i--)
 	{
-		if ( CurrentModuleFilepath[ i ] == 0x5c || CurrentModuleFilepath[ i ] == 0x2f )
+		if (CurrentModuleFilepath[i] == 0x5c || CurrentModuleFilepath[i] == 0x2f)
 		{
-			CurrentModuleFilepath[ i + 1 ] = '\0';
+			CurrentModuleFilepath[i + 1] = '\0';
 			break;
 		}
 	}
 
 	SIZE_T i = 0;
 
-	do {
-		ConfigFileFullPath[ i ] = CurrentModuleFilepath[ i ];
+	do
+	{
+		ConfigFileFullPath[i] = CurrentModuleFilepath[i];
 		i++;
-	} while ( CurrentModuleFilepath[ i ] != '\0' );
+	} while (CurrentModuleFilepath[i] != '\0');
 
 	LPCSTR ConfigFilename = "\\gftrace.cfg";
 
-	SIZE_T ConfigFullPathSize = strlen( ConfigFileFullPath ) + strlen( ConfigFilename ) + 1;
+	SIZE_T ConfigFullPathSize = strlen(ConfigFileFullPath) + strlen(ConfigFilename) + 1;
 
 	//
 	// Build the gftrace.cfg full path.
 	//
-	strncat_s( ConfigFileFullPath, ConfigFullPathSize, ConfigFilename, _TRUNCATE );
+	strncat_s(ConfigFileFullPath, ConfigFullPathSize, ConfigFilename, _TRUNCATE);
 
 	//
 	// Check if the gftrace.cfg file exists in the expected directory.
 	//
-	if ( GetFileAttributesA( ( LPCSTR ) ConfigFileFullPath ) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND )
+	if (GetFileAttributesA((LPCSTR) ConfigFileFullPath) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
 	{
-		PrintError( "Failed to find the gftrace.cfg file in the current directory" );
+		PrintError("Failed to find the gftrace.cfg file in the current directory");
 	}
 
-	HANDLE hFile = CreateFileA( ConfigFileFullPath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+	HANDLE hFile = CreateFileA(ConfigFileFullPath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-	if ( hFile == INVALID_HANDLE_VALUE )
+	if (hFile == INVALID_HANDLE_VALUE)
 	{
-		PrintWinError( "Failed to open the config file", GetLastError() );
+		PrintWinError("Failed to open the config file", GetLastError());
 	}
 
 	DWORD FileSizeHigh = 0;
 
-	DWORD FileSize = GetFileSize( hFile, &FileSizeHigh );
+	DWORD FileSize = GetFileSize(hFile, &FileSizeHigh);
 
-	if ( FileSize == INVALID_FILE_SIZE )
+	if (FileSize == INVALID_FILE_SIZE)
 	{
-		CloseHandle( hFile );
-		PrintWinError( "Failed to get config file size", GetLastError() );
+		CloseHandle(hFile);
+		PrintWinError("Failed to get config file size", GetLastError());
 	}
 
-	BYTE* FileContent = calloc( FileSize, 1 );
+	BYTE* FileContent = calloc(FileSize, 1);
 
 	DWORD NumberOfBytesRead;
 
-	if ( !ReadFile( hFile, ( LPVOID ) FileContent, FileSize, &NumberOfBytesRead, NULL ) )
+	if (!ReadFile(hFile, (LPVOID) FileContent, FileSize, &NumberOfBytesRead, NULL))
 	{
-		CloseHandle( hFile );
-		PrintWinError( "Failed to read the config file content", GetLastError() );
+		CloseHandle(hFile);
+		PrintWinError("Failed to read the config file content", GetLastError());
 	}
 
 	NumberOfTargetFuncs = 0;
@@ -315,33 +316,33 @@ InitTargetFuncList()
 	// 
 	// TODO: improve the code bellow.
 	//
-	for ( SIZE_T i = 0; i <= FileSize; i++ )
+	for (SIZE_T i = 0; i <= FileSize; i++)
 	{
-		if ( FileContent[ i ] == ',' || i == FileSize )
+		if (FileContent[i] == ',' || i == FileSize)
 		{
 			NumberOfTargetFuncs++;
 		}
 	}
 
-	SIZE_T ListSize = NumberOfTargetFuncs * sizeof( FUNCINFO );
+	SIZE_T ListSize = NumberOfTargetFuncs * sizeof(FUNCINFO);
 
 	HANDLE hHeap = GetProcessHeap();
 
-	if ( hHeap == NULL )
+	if (hHeap == NULL)
 	{
-		CloseHandle( hFile );
-		PrintWinError( "Failed to get process heap", GetLastError() );
+		CloseHandle(hFile);
+		PrintWinError("Failed to get process heap", GetLastError());
 	}
 
 	//
 	// Allocate memory for our global target function list.
 	//
-	TargetFuncsInfo = HeapAlloc( hHeap, HEAP_ZERO_MEMORY, ListSize );
+	TargetFuncsInfo = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, ListSize);
 
-	if ( TargetFuncsInfo == NULL )
+	if (TargetFuncsInfo == NULL)
 	{
-		CloseHandle( hFile );
-		PrintWinError( "Failed to allocate memory for the target function list", GetLastError() );
+		CloseHandle(hFile);
+		PrintWinError("Failed to allocate memory for the target function list", GetLastError());
 	}
 
 	LPCSTR TmpFuncName;
@@ -352,20 +353,20 @@ InitTargetFuncList()
 	// 
 	// TODO: improve the code bellow.
 	//
-	for ( SIZE_T i = 0, x = 0; i <= FileSize; i++ )
+	for (SIZE_T i = 0, x = 0; i <= FileSize; i++)
 	{
-		if ( FileContent[ i ] == ',' )
+		if (FileContent[i] == ',')
 		{
-			FileContent[ i ] = '\0';
-			TmpFuncName = _strdup( ( LPCSTR ) &FileContent[ j ] );
+			FileContent[i] = '\0';
+			TmpFuncName = _strdup((LPCSTR) &FileContent[j]);
 
-			if ( TmpFuncName == NULL )
+			if (TmpFuncName == NULL)
 			{
-				CloseHandle( hFile );
-				PrintError( "Failed to strdup API function name" );
+				CloseHandle(hFile);
+				PrintError("Failed to strdup API function name");
 			}
 
-			TargetFuncsInfo[ x ].Name = TmpFuncName;
+			TargetFuncsInfo[x].Name = TmpFuncName;
 
 			x++;
 			j = i + 1;
@@ -373,24 +374,24 @@ InitTargetFuncList()
 			continue;
 		}
 
-		if ( i == FileSize )
+		if (i == FileSize)
 		{
-			FileContent[ i ] = '\0';
-			TmpFuncName = _strdup( ( LPCSTR ) &FileContent[ j ] );
+			FileContent[i] = '\0';
+			TmpFuncName = _strdup((LPCSTR) &FileContent[j]);
 
-			if ( TmpFuncName == NULL )
+			if (TmpFuncName == NULL)
 			{
-				CloseHandle( hFile );
-				PrintError( "Failed to strdup the API function name" );
+				CloseHandle(hFile);
+				PrintError("Failed to strdup the API function name");
 			}
 
-			TargetFuncsInfo[ x ].Name = TmpFuncName;
+			TargetFuncsInfo[x].Name = TmpFuncName;
 
 			break;
 		}
 	}
 
-	CloseHandle( hFile );
+	CloseHandle(hFile);
 }
 
 VOID
@@ -399,37 +400,37 @@ ResolveTargetFuncListAddresses()
 	//
 	// Go through each function name in our global list, resolve it's export address and add it to the list.
 	//
-	for ( SIZE_T i = 0; i < NumberOfTargetFuncs; i++ )
+	for (SIZE_T i = 0; i < NumberOfTargetFuncs; i++)
 	{
-		FARPROC ExportAddr = GetExportAddr( TargetFuncsInfo[ i ].Name );
-		TargetFuncsInfo[ i ].Addr = ExportAddr;
+		FARPROC ExportAddr = GetExportAddr(TargetFuncsInfo[i].Name);
+		TargetFuncsInfo[i].Addr = ExportAddr;
 	}
 }
 
 VOID
 InitIATDenyList()
 {
-	HMODULE ModuleBase = GetModuleHandleW( NULL );
-	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc( ( ULONG_PTR ) ModuleBase );
+	HMODULE ModuleBase = GetModuleHandleW(NULL);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((ULONG_PTR) ModuleBase);
 
-	if ( ImportDesc == NULL )
+	if (ImportDesc == NULL)
 	{
-		PrintError( "Import Descriptor is NULL" );
+		PrintError("Import Descriptor is NULL");
 	}
 
-	PIMAGE_THUNK_DATA FirstThunk = ( PIMAGE_THUNK_DATA ) ( ( ULONG_PTR ) ModuleBase + ImportDesc->FirstThunk );
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA) ((ULONG_PTR) ModuleBase + ImportDesc->FirstThunk);
 
-	if ( !FirstThunk )
+	if (!FirstThunk)
 	{
-		PrintError( "First Thunk is 0" );
+		PrintError("First Thunk is 0");
 	}
 
 	NumberOfIATEntries = 0;
 	SIZE_T i = 0;
 
-	while ( ImportDesc[ i++ ].FirstThunk )
+	while (ImportDesc[i++].FirstThunk)
 	{
-		while ( FirstThunk->u1.Function )
+		while (FirstThunk->u1.Function)
 		{
 			NumberOfIATEntries++;
 			FirstThunk++;
@@ -438,23 +439,23 @@ InitIATDenyList()
 
 	HANDLE hHeap = GetProcessHeap();
 
-	if ( hHeap == NULL )
+	if (hHeap == NULL)
 	{
-		PrintWinError( "Failed to get process heap", GetLastError() );
+		PrintWinError("Failed to get process heap", GetLastError());
 	}
 
-	SIZE_T ListSize = NumberOfIATEntries * sizeof( IATINFO );
+	SIZE_T ListSize = NumberOfIATEntries * sizeof(IATINFO);
 
-	IatInfo = HeapAlloc( hHeap, HEAP_ZERO_MEMORY, ListSize );
+	IatInfo = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, ListSize);
 
-	if ( IatInfo == NULL )
+	if (IatInfo == NULL)
 	{
-		PrintWinError( "Failed to allocate memory for the deny function list", GetLastError() );
+		PrintWinError("Failed to allocate memory for the deny function list", GetLastError());
 	}
 
-	for ( SIZE_T i = 0; i < NumberOfIATEntries; i++ )
+	for (SIZE_T i = 0; i < NumberOfIATEntries; i++)
 	{
-		IatInfo[ i ].Addr = 0;
-		IatInfo[ i ].IsAllowedToLog = FALSE;
+		IatInfo[i].Addr = 0;
+		IatInfo[i].IsAllowedToLog = FALSE;
 	}
 }

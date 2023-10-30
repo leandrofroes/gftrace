@@ -4,20 +4,20 @@
 PIMAGE_NT_HEADERS64
 GetNtHeader(
 	_In_ ULONG_PTR ModuleBase
-	)
+)
 {
-	IMAGE_DOS_HEADER* DosHeader = ( IMAGE_DOS_HEADER* ) ModuleBase;
+	IMAGE_DOS_HEADER* DosHeader = (IMAGE_DOS_HEADER*) ModuleBase;
 
-	if ( DosHeader->e_magic != IMAGE_DOS_SIGNATURE )
+	if (DosHeader->e_magic != IMAGE_DOS_SIGNATURE)
 	{
-		PrintError( "The target process has an invalid DOS Signare" );
+		PrintError("The target process has an invalid DOS Signare");
 	}
 
-	PIMAGE_NT_HEADERS64 NtHeader = ( IMAGE_NT_HEADERS64* ) ( ModuleBase + DosHeader->e_lfanew );
+	PIMAGE_NT_HEADERS64 NtHeader = (IMAGE_NT_HEADERS64*) (ModuleBase + DosHeader->e_lfanew);
 
-	if ( NtHeader->Signature != IMAGE_NT_SIGNATURE )
+	if (NtHeader->Signature != IMAGE_NT_SIGNATURE)
 	{
-		PrintError( "The target process has an invalid PE Signare" );
+		PrintError("The target process has an invalid PE Signare");
 	}
 
 	return NtHeader;
@@ -26,20 +26,20 @@ GetNtHeader(
 PIMAGE_NT_HEADERS32
 GetNtHeader32(
 	_In_ ULONG_PTR ModuleBase
-	)
+)
 {
-	IMAGE_DOS_HEADER* DosHeader = ( IMAGE_DOS_HEADER* ) ModuleBase;
+	IMAGE_DOS_HEADER* DosHeader = (IMAGE_DOS_HEADER*) ModuleBase;
 
-	if ( DosHeader->e_magic != IMAGE_DOS_SIGNATURE )
+	if (DosHeader->e_magic != IMAGE_DOS_SIGNATURE)
 	{
-		PrintError( "The target process has an invalid DOS Signare" );
+		PrintError("The target process has an invalid DOS Signare");
 	}
 
-	PIMAGE_NT_HEADERS32 NtHeader = ( IMAGE_NT_HEADERS32* ) ( ModuleBase + DosHeader->e_lfanew );
+	PIMAGE_NT_HEADERS32 NtHeader = (IMAGE_NT_HEADERS32*) (ModuleBase + DosHeader->e_lfanew);
 
-	if ( NtHeader->Signature != IMAGE_NT_SIGNATURE )
+	if (NtHeader->Signature != IMAGE_NT_SIGNATURE)
 	{
-		PrintError( "The target process has an invalid PE Signare" );
+		PrintError("The target process has an invalid PE Signare");
 	}
 
 	return NtHeader;
@@ -48,74 +48,74 @@ GetNtHeader32(
 PIMAGE_EXPORT_DIRECTORY
 GetExportDirectory(
 	_In_ ULONG_PTR ModuleBase
-	)
+)
 {
 #ifdef _WIN64
-	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader( ModuleBase );
+	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
 	IMAGE_OPTIONAL_HEADER64 OptHeader = NtHeader->OptionalHeader;
 #else
-	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32( ModuleBase );
+	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32(ModuleBase);
 	IMAGE_OPTIONAL_HEADER32 OptHeader = NtHeader->OptionalHeader;
 #endif
 
-	IMAGE_DATA_DIRECTORY ExportDataDir = OptHeader.DataDirectory[ IMAGE_DIRECTORY_ENTRY_EXPORT ];
+	IMAGE_DATA_DIRECTORY ExportDataDir = OptHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
 	DWORD ExportDirRva = ExportDataDir.VirtualAddress;
 
-	if ( !ExportDirRva )
+	if (!ExportDirRva)
 	{
 		return NULL;
 	}
 
-	return ( PIMAGE_EXPORT_DIRECTORY ) ( ModuleBase + ExportDirRva );
+	return (PIMAGE_EXPORT_DIRECTORY) (ModuleBase + ExportDirRva);
 }
 
 PIMAGE_IMPORT_DESCRIPTOR
 GetImportDesc(
 	_In_ ULONG_PTR ModuleBase
-	)
+)
 {
 #ifdef _WIN64
-	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader( ModuleBase );
+	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
 	IMAGE_OPTIONAL_HEADER64 OptHeader = NtHeader->OptionalHeader;
 #else
-	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32( ModuleBase );
+	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32(ModuleBase);
 	IMAGE_OPTIONAL_HEADER32 OptHeader = NtHeader->OptionalHeader;
 #endif
 
-	IMAGE_DATA_DIRECTORY ImportDataDir = OptHeader.DataDirectory[ IMAGE_DIRECTORY_ENTRY_IMPORT ];
+	IMAGE_DATA_DIRECTORY ImportDataDir = OptHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
 	DWORD ImportDirRva = ImportDataDir.VirtualAddress;
 
-	if ( !ImportDirRva )
+	if (!ImportDirRva)
 	{
 		return NULL;
 	}
 
-	return ( PIMAGE_IMPORT_DESCRIPTOR ) ( ModuleBase + ImportDirRva );
+	return (PIMAGE_IMPORT_DESCRIPTOR) (ModuleBase + ImportDirRva);
 }
 
 PIMAGE_SECTION_HEADER
 GetSectionHeader(
 	_In_ ULONG_PTR ModuleBase,
 	_In_ BYTE* SectionName
-	)
+)
 {
 #ifdef _WIN64
-	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader( ModuleBase );
+	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
 #else
-	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32( ModuleBase );
+	PIMAGE_NT_HEADERS32 NtHeader = GetNtHeader32(ModuleBase);
 #endif
 
-	PIMAGE_SECTION_HEADER pSection = IMAGE_FIRST_SECTION( NtHeader );
+	PIMAGE_SECTION_HEADER pSection = IMAGE_FIRST_SECTION(NtHeader);
 	DWORD NumberOfSections = NtHeader->FileHeader.NumberOfSections;
 
-	if ( NumberOfSections == 0 )
+	if (NumberOfSections == 0)
 	{
-		PrintError( "The number of sections of the target process is zero" );
+		PrintError("The number of sections of the target process is zero");
 	}
 
-	for ( SIZE_T i = 0; i < NumberOfSections; i++ )
+	for (SIZE_T i = 0; i < NumberOfSections; i++)
 	{
-		if ( IsSameStr( ( BYTE* ) pSection->Name, SectionName ) )
+		if (IsSameStr((BYTE*) pSection->Name, SectionName))
 		{
 			return pSection;
 		}
@@ -129,12 +129,12 @@ GetSectionHeader(
 FARPROC
 GetExportAddr(
 	_In_ LPCSTR ExportName
-	)
+)
 {
 #ifdef _WIN64
-	PPEB Peb = ( PPEB ) __readgsqword( 0x60 );
+	PPEB Peb = (PPEB) __readgsqword(0x60);
 #else
-	PPEB Peb = ( PPEB ) __readfsdword( 0x30 );
+	PPEB Peb = (PPEB) __readfsdword(0x30);
 #endif
 
 	PLDR_DATA_TABLE_ENTRY CurrentModule = NULL;
@@ -144,12 +144,12 @@ GetExportAddr(
 	//
 	// Go through each loaded module and try to find the target export address using the given export name.
 	//
-	while ( CurrentEntry != &Peb->Ldr->InLoadOrderModuleList && CurrentEntry != NULL )
+	while (CurrentEntry != &Peb->Ldr->InLoadOrderModuleList && CurrentEntry != NULL)
 	{
-		CurrentModule = CONTAINING_RECORD( CurrentEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks );
-		ExportAddr = ResolveExportAddr( ( ULONG_PTR ) CurrentModule->DllBase, ExportName );
+		CurrentModule = CONTAINING_RECORD(CurrentEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
+		ExportAddr = ResolveExportAddr((ULONG_PTR) CurrentModule->DllBase, ExportName);
 
-		if ( ExportAddr != NULL )
+		if (ExportAddr != NULL)
 		{
 			return ExportAddr;
 		}
@@ -164,11 +164,11 @@ FARPROC
 ResolveExportAddr(
 	_In_ ULONG_PTR ModuleBase,
 	_In_ LPCSTR ExportName
-	)
+)
 {
-	PIMAGE_EXPORT_DIRECTORY ExportDir = GetExportDirectory( ModuleBase );
+	PIMAGE_EXPORT_DIRECTORY ExportDir = GetExportDirectory(ModuleBase);
 
-	if ( ExportDir == NULL )
+	if (ExportDir == NULL)
 	{
 		return NULL;
 	}
@@ -178,17 +178,17 @@ ResolveExportAddr(
 	DWORD AddressOfNameOrdinals = ExportDir->AddressOfNameOrdinals;
 	DWORD AddressOfFunctions = ExportDir->AddressOfFunctions;
 
-	for ( SIZE_T i = 0; i < NumberOfNames; i++ )
+	for (SIZE_T i = 0; i < NumberOfNames; i++)
 	{
-		DWORD NameRva = *( DWORD* ) ( ModuleBase + AddressOfNameRva + i * sizeof( DWORD ) );
-		WORD OrdinalRva = *( WORD* ) ( ModuleBase + AddressOfNameOrdinals + i * sizeof( WORD ) );
-		LPCSTR Name = ( LPCSTR ) ( ModuleBase + NameRva );
+		DWORD NameRva = *(DWORD*) (ModuleBase + AddressOfNameRva + i * sizeof(DWORD));
+		WORD OrdinalRva = *(WORD*) (ModuleBase + AddressOfNameOrdinals + i * sizeof(WORD));
+		LPCSTR Name = (LPCSTR) (ModuleBase + NameRva);
 
-		if ( IsSameStr( ( BYTE* ) ExportName, ( BYTE* ) Name ) )
+		if (IsSameStr((BYTE*) ExportName, (BYTE*) Name))
 		{
-			DWORD ExportRva = *( DWORD* ) ( ModuleBase + AddressOfFunctions + OrdinalRva * sizeof( DWORD ) );
+			DWORD ExportRva = *(DWORD*) (ModuleBase + AddressOfFunctions + OrdinalRva * sizeof(DWORD));
 
-			return ( FARPROC ) ( ModuleBase + ExportRva );
+			return (FARPROC) (ModuleBase + ExportRva);
 		}
 	}
 
@@ -198,29 +198,29 @@ ResolveExportAddr(
 LPCSTR
 GetImportName(
 	_In_ FARPROC ImportAddr
-	)
+)
 {
-	HMODULE ModuleBase = GetModuleHandle( NULL );
-	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc( ( ULONG_PTR ) ModuleBase );
+	HMODULE ModuleBase = GetModuleHandle(NULL);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((ULONG_PTR) ModuleBase);
 
-	if ( ImportDesc == NULL )
+	if (ImportDesc == NULL)
 	{
 		return NULL;
 	}
 
-	PIMAGE_THUNK_DATA OriginalFirstThunk = ( PIMAGE_THUNK_DATA ) ( ( ULONG_PTR ) ModuleBase + ImportDesc->OriginalFirstThunk );
-	PIMAGE_THUNK_DATA FirstThunk = ( PIMAGE_THUNK_DATA ) ( ( ULONG_PTR ) ModuleBase + ImportDesc->FirstThunk );
+	PIMAGE_THUNK_DATA OriginalFirstThunk = (PIMAGE_THUNK_DATA) ((ULONG_PTR) ModuleBase + ImportDesc->OriginalFirstThunk);
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA) ((ULONG_PTR) ModuleBase + ImportDesc->FirstThunk);
 
 	SIZE_T i = 0;
 
-	while ( ImportDesc[ i++ ].OriginalFirstThunk )
+	while (ImportDesc[i++].OriginalFirstThunk)
 	{
-		while ( OriginalFirstThunk->u1.Function )
+		while (OriginalFirstThunk->u1.Function)
 		{
-			if ( !memcmp( &FirstThunk->u1.Function, ImportAddr, sizeof( FARPROC ) ) )
+			if (!memcmp(&FirstThunk->u1.Function, ImportAddr, sizeof(FARPROC)))
 			{
-				PIMAGE_IMPORT_BY_NAME ImportName = ( PIMAGE_IMPORT_BY_NAME ) ( ( ULONG_PTR ) ModuleBase + OriginalFirstThunk->u1.AddressOfData );
-				return ( LPCSTR ) ImportName->Name;
+				PIMAGE_IMPORT_BY_NAME ImportName = (PIMAGE_IMPORT_BY_NAME) ((ULONG_PTR) ModuleBase + OriginalFirstThunk->u1.AddressOfData);
+				return (LPCSTR) ImportName->Name;
 			}
 			OriginalFirstThunk++;
 			FirstThunk++;
@@ -233,25 +233,25 @@ GetImportName(
 BOOL
 HasImport(
 	_In_ FARPROC ImportAddr
-	)
+)
 {
-	HMODULE ModuleBase = GetModuleHandleW( NULL );
-	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc( ( ULONG_PTR ) ModuleBase );
+	HMODULE ModuleBase = GetModuleHandleW(NULL);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((ULONG_PTR) ModuleBase);
 
-	if ( ImportDesc == NULL )
+	if (ImportDesc == NULL)
 	{
 		return FALSE;
 	}
 
-	PIMAGE_THUNK_DATA FirstThunk = ( PIMAGE_THUNK_DATA ) ( ( ULONG_PTR ) ModuleBase + ImportDesc->FirstThunk );
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA) ((ULONG_PTR) ModuleBase + ImportDesc->FirstThunk);
 
 	SIZE_T i = 0;
 
-	while ( ImportDesc[ i++ ].FirstThunk )
+	while (ImportDesc[i++].FirstThunk)
 	{
-		while ( FirstThunk->u1.Function )
+		while (FirstThunk->u1.Function)
 		{
-			if ( !memcmp( &FirstThunk->u1.Function, ImportAddr, sizeof( FARPROC ) ) )
+			if (!memcmp(&FirstThunk->u1.Function, ImportAddr, sizeof(FARPROC)))
 			{
 				return TRUE;
 			}

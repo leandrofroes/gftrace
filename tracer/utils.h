@@ -6,14 +6,16 @@
 
 #define MAX_STR_SIZE 8192
 
-typedef struct FUNCINFO {
+typedef struct FUNCINFO
+{
 	LPCSTR Name;
 	FARPROC Addr;
 } FUNCINFO;
 
-struct FUNCINFO *TargetFuncsInfo;
+struct FUNCINFO* TargetFuncsInfo;
 
-typedef struct IATINFO {
+typedef struct IATINFO
+{
 	ULONG_PTR Addr;
 	BOOL IsAllowedToLog;
 } IATINFO;
