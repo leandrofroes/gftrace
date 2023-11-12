@@ -37,12 +37,12 @@ FindPattern(
 
 		for (SIZE_T j = 0; j < PatternSize; j++)
 		{
-			bFound &= Mask[j] == '?' || BytePattern[j] == *((LPCSTR) BaseAddr + i + j);
+			bFound &= Mask[j] == '?' || BytePattern[j] == *((LPCSTR)BaseAddr + i + j);
 		}
 
 		if (bFound)
 		{
-			return (ULONG_PTR) (BaseAddr + i);
+			return (ULONG_PTR)(BaseAddr + i);
 		}
 	}
 
@@ -69,15 +69,15 @@ LogAPICall(
 	//
 	for (SIZE_T i = 0; i < Argc; i++)
 	{
-		ULONG_PTR Argv = *((ULONG_PTR*) Params + i);
+		ULONG_PTR Argv = *((ULONG_PTR*)Params + i);
 
 		//
 		// Try to guess if the argument is a string, an address or simply a number and print it properly.
 		//
-		if (IsWideStr((BYTE*) Argv))
+		if (IsWideStr((BYTE*)Argv))
 		{
-			LPCWSTR StrArg = (LPCWSTR) Argv;
-			if (wcslen((LPCWSTR) Argv) > 2048)
+			LPCWSTR StrArg = (LPCWSTR)Argv;
+			if (wcslen((LPCWSTR)Argv) > 2048)
 			{
 				StrArg = L"[string is too large]";
 			}
@@ -98,7 +98,7 @@ LogAPICall(
 		}
 	}
 
-	snprintf(TempBuffer, Size, ") = 0x%lx (%d)", ReturnValue, (INT) ReturnValue);
+	snprintf(TempBuffer, Size, ") = 0x%lx (%d)", ReturnValue, (INT)ReturnValue);
 	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
 	//
@@ -122,12 +122,12 @@ LogGetProcAddressCall(
 	snprintf(TempBuffer, Size, "- GetProcAddress(");
 	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
-	HMODULE ModuleBase = (HMODULE) * ((ULONG_PTR*) Params + 0);
+	HMODULE ModuleBase = (HMODULE) * ((ULONG_PTR*)Params + 0);
 
 	snprintf(TempBuffer, Size, "0x%llx, ", ModuleBase);
 	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
-	LPCSTR ExportName = (LPCSTR) * ((ULONG_PTR*) Params + 1);
+	LPCSTR ExportName = (LPCSTR) * ((ULONG_PTR*)Params + 1);
 
 	snprintf(TempBuffer, Size, "\"%s\"", ExportName);
 	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
@@ -154,7 +154,7 @@ IsWideStr(
 	_In_ BYTE* Addr
 )
 {
-	if (!IsValidStrMem((LPCVOID) Addr))
+	if (!IsValidStrMem((LPCVOID)Addr))
 	{
 		return FALSE;
 	}
@@ -277,7 +277,7 @@ InitTargetFuncList()
 	//
 	// Check if the gftrace.cfg file exists in the expected directory.
 	//
-	if (GetFileAttributesA((LPCSTR) ConfigFileFullPath) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
+	if (GetFileAttributesA((LPCSTR)ConfigFileFullPath) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
 	{
 		PrintError("Failed to find the gftrace.cfg file in the current directory");
 	}
@@ -303,7 +303,7 @@ InitTargetFuncList()
 
 	DWORD NumberOfBytesRead;
 
-	if (!ReadFile(hFile, (LPVOID) FileContent, FileSize, &NumberOfBytesRead, NULL))
+	if (!ReadFile(hFile, (LPVOID)FileContent, FileSize, &NumberOfBytesRead, NULL))
 	{
 		CloseHandle(hFile);
 		PrintWinError("Failed to read the config file content", GetLastError());
@@ -358,7 +358,7 @@ InitTargetFuncList()
 		if (FileContent[i] == ',')
 		{
 			FileContent[i] = '\0';
-			TmpFuncName = _strdup((LPCSTR) &FileContent[j]);
+			TmpFuncName = _strdup((LPCSTR)&FileContent[j]);
 
 			if (TmpFuncName == NULL)
 			{
@@ -377,7 +377,7 @@ InitTargetFuncList()
 		if (i == FileSize)
 		{
 			FileContent[i] = '\0';
-			TmpFuncName = _strdup((LPCSTR) &FileContent[j]);
+			TmpFuncName = _strdup((LPCSTR)&FileContent[j]);
 
 			if (TmpFuncName == NULL)
 			{
@@ -411,14 +411,14 @@ VOID
 InitIATDenyList()
 {
 	HMODULE ModuleBase = GetModuleHandleW(NULL);
-	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((ULONG_PTR) ModuleBase);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((ULONG_PTR)ModuleBase);
 
 	if (ImportDesc == NULL)
 	{
 		PrintError("Import Descriptor is NULL");
 	}
 
-	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA) ((ULONG_PTR) ModuleBase + ImportDesc->FirstThunk);
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((ULONG_PTR)ModuleBase + ImportDesc->FirstThunk);
 
 	if (!FirstThunk)
 	{

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <windows.h>
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     if (argc < 2)
     {
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
     //
     // Check if the gftrace.dll file exists in the gftrace.exe directory.
     //
-    if (GetFileAttributesA((LPCSTR) LibFullPath) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
+    if (GetFileAttributesA((LPCSTR)LibFullPath) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
     {
         printf("[!] Failed to find the gftrace DLL file in the gftrace.exe directory.\n");
         TerminateProcess(hProcess, 0);
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
     //
     // Write gftrace DLL full path into the target process.
     //
-    if (!WriteProcessMemory(hProcess, LibFullPathRemoteAddr, (LPCVOID) LibFullPath, Size, NULL))
+    if (!WriteProcessMemory(hProcess, LibFullPathRemoteAddr, (LPCVOID)LibFullPath, Size, NULL))
     {
         printf("[!] Failed to write to the target process memory.\n[!] Error code: %u\n", GetLastError());
         TerminateProcess(hProcess, 0);
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
     //
     // Create a thread in the target process pointing to LoadLibraryA() to load the gftrace DLL into the target process address space.
     //
-    HANDLE hInjectionThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE) pLoadLibraryA, (LPVOID) LibFullPathRemoteAddr, 0, &ThreadId);
+    HANDLE hInjectionThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)pLoadLibraryA, (LPVOID)LibFullPathRemoteAddr, 0, &ThreadId);
 
     if (hInjectionThread == NULL)
     {
@@ -178,6 +178,8 @@ int main(int argc, char **argv)
     // Resume the target process main thread.
     //
     ResumeThread(hThread);
+
+    WaitForSingleObject(hProcess, INFINITE);
 
     VirtualFreeEx(hProcess, LibFullPathRemoteAddr, 0, MEM_RELEASE);
     CloseHandle(hInjectionThread);

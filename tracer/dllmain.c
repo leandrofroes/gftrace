@@ -17,7 +17,7 @@ Init()
     //
     // Get the address of GetCommandLineW() and save it for further usage.
     //
-    pGetCommandLineW = GetProcAddress(ModuleBase, (LPCSTR) "GetCommandLineW");
+    pGetCommandLineW = GetProcAddress(ModuleBase, (LPCSTR)"GetCommandLineW");
 
     if (pGetCommandLineW == NULL)
     {
@@ -27,7 +27,7 @@ Init()
     //
     // Get the address of GetProcAddress() and save it for further usage.
     //
-    pGetProcAddress = GetProcAddress(ModuleBase, (LPCSTR) "GetProcAddress");
+    pGetProcAddress = GetProcAddress(ModuleBase, (LPCSTR)"GetProcAddress");
 
     if (pGetProcAddress == NULL)
     {
