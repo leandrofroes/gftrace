@@ -138,24 +138,24 @@ HookAsmstdcall()
 
 #ifdef _WIN64
 	//
-	// https://github.com/golang/go/blob/master/src/runtime/sys_windows_amd64.s#L15
+	// https://github.com/golang/go/blob/master/src/runtime/sys_windows_amd64.s#L20
 	// 
 	CHAR TargetAddrPattern[] = {
-		0x65, 0x48, 0x8B, 0x3C, 0x25, 0x30, 0x00, 0x00, 0x00, // mov rdi, qword ptr gs:[0x30]
-		0x8B, 0x47, 0x68,                                     // mov eax, dword ptr ds:[rdi+0x68]
-		0x48, 0x89, 0x41, 0x28                               // mov qword ptr ds:[rcx+0x28], rax
+		0x65, 0x48, 0x8B, 0x3C, 0x25, 0x30, 0x00, 0x00, 0x00, 	// mov rdi, qword ptr gs:[0x30]
+		0x8B, 0x47, 0x68,                                     	// mov eax, dword ptr ds:[rdi+0x68]
+		0x48, 0x89, 0x41, 0x28					// mov qword ptr ds:[rcx+0x28], rax
 	};
 
 	LPCSTR Mask = "xxxxxxxxxxxxxxxxx";
 	SIZE_T NumberOfBytesToHook = 0x10;
 #else
 	//
-	// https://github.com/golang/go/blob/master/src/runtime/sys_windows_386.s#L14
+	// https://github.com/golang/go/blob/master/src/runtime/sys_windows_386.s#L17
 	// 
 	CHAR TargetAddrPattern[] = {
 		0x64, 0x8B, 0x05, 0x34, 0x00, 0x00, 0x00,	// mov eax, dword ptr fs:[0x34]
-		0x89, 0x43, 0x14,							// mov dword ptr ds:[ebx+0x14], eax
-		0xC3										// ret
+		0x89, 0x43, 0x14,				// mov dword ptr ds:[ebx+0x14], eax
+		0xC3						// ret
 	};
 
 	LPCSTR Mask = "xxxxxxxxxxx";
