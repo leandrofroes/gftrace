@@ -6,10 +6,10 @@ bIsReadyToLog = FALSE;
 
 LPVOID
 PerformHook(
-	_In_ DWORD_PTR Src,
-	_In_ DWORD_PTR Dest,
+	_In_ ULONG_PTR Src,
+	_In_ ULONG_PTR Dest,
 	_In_ SIZE_T Len
-	)
+)
 {
 	CHAR HookBytes[] = {
 		0x49, 0xbb, 0xd, 0xe, 0xa, 0xd, 0xb, 0xe, 0xe, 0xf, // mov r11, <target_addr>
@@ -30,7 +30,7 @@ PerformHook(
 	//
 	// Write the HookBytes array with the correct dest address into the target address.
 	//
-	*(DWORD_PTR *)(HookBytes + 2) = Dest;
+	*(ULONG_PTR*)(HookBytes + 2) = Dest;
 	RtlCopyMemory((LPVOID)Src, (LPCVOID)HookBytes, sizeof(HookBytes));
 
 	//
@@ -57,10 +57,10 @@ PerformHook(
 
 LPVOID
 PerformHook32(
-	_In_ DWORD_PTR Src,
-	_In_ DWORD_PTR Dest,
+	_In_ ULONG_PTR Src,
+	_In_ ULONG_PTR Dest,
 	_In_ SIZE_T Len
-	)
+)
 {
 	DWORD HookBytesLen = 5;
 	DWORD OldProtection;
@@ -73,13 +73,13 @@ PerformHook32(
 		PrintWinError("Failed setting the hook memory region protection", GetLastError());
 	}
 
-	DWORD_PTR RelativeAddr = (Dest - Src) - 5;
+	ULONG_PTR RelativeAddr = (Dest - Src) - 5;
 
 	//
 	// Write the "jmp <address>" bytes into the target address.
 	//
 	*(BYTE*)Src = 0xE9; // JMP
-	*(DWORD_PTR *)(Src + 1) = RelativeAddr;
+	*(ULONG_PTR*)(Src + 1) = RelativeAddr;
 
 	//
 	// NOP the remaining hook bytes to make sure the instructions will be properly aligned.
@@ -119,7 +119,7 @@ HookAsmstdcall()
 	//
 	// Get the .text section header of the Golang module.
 	//
-	PIMAGE_SECTION_HEADER SectionHeader = GetSectionHeader((DWORD_PTR)GolangModuleBase, (BYTE*)".text");
+	PIMAGE_SECTION_HEADER SectionHeader = GetSectionHeader((ULONG_PTR)GolangModuleBase, (BYTE*)".text");
 
 	if (SectionHeader == NULL)
 	{
@@ -143,8 +143,7 @@ HookAsmstdcall()
 	CHAR TargetAddrPattern[] = {
 		0x65, 0x48, 0x8B, 0x3C, 0x25, 0x30, 0x00, 0x00, 0x00, // mov rdi, qword ptr gs:[0x30]
 		0x8B, 0x47, 0x68,                                     // mov eax, dword ptr ds:[rdi+0x68]
-		0x48, 0x89, 0x41, 0x28,                               // mov qword ptr ds:[rcx+0x28], rax
-		0xC3                                                  // ret
+		0x48, 0x89, 0x41, 0x28                               // mov qword ptr ds:[rcx+0x28], rax
 	};
 
 	LPCSTR Mask = "xxxxxxxxxxxxxxxxx";
@@ -157,7 +156,7 @@ HookAsmstdcall()
 		0x64, 0x8B, 0x05, 0x34, 0x00, 0x00, 0x00,	// mov eax, dword ptr fs:[0x34]
 		0x89, 0x43, 0x14,							// mov dword ptr ds:[ebx+0x14], eax
 		0xC3										// ret
-};
+	};
 
 	LPCSTR Mask = "xxxxxxxxxxx";
 	SIZE_T NumberOfBytesToHook = 0x7;
@@ -166,7 +165,7 @@ HookAsmstdcall()
 	//
 	// Attempt to find the target address we want to hook inside Asmstdcall function.
 	//
-	DWORD_PTR HookAddr = FindPattern((DWORD_PTR)GolangModuleBase, SectionSize, (LPCSTR)TargetAddrPattern, Mask);
+	ULONG_PTR HookAddr = FindPattern((ULONG_PTR)GolangModuleBase, SectionSize, (LPCSTR)TargetAddrPattern, Mask);
 
 	if (!HookAddr)
 	{
@@ -177,16 +176,16 @@ HookAsmstdcall()
 	// Perform a mid function hook and set the address to jump back when the hooking function execution is done.
 	//
 #ifdef _WIN64
-	JmpBackAddr = PerformHook((DWORD_PTR)HookAddr, (DWORD_PTR)AsmstdcallStub, NumberOfBytesToHook);
+	JmpBackAddr = PerformHook((ULONG_PTR)HookAddr, (ULONG_PTR)AsmstdcallStub, NumberOfBytesToHook);
 #else
-	JmpBackAddr = PerformHook32((DWORD_PTR)HookAddr, (DWORD_PTR)AsmstdcallStub, NumberOfBytesToHook);
+	JmpBackAddr = PerformHook32((ULONG_PTR)HookAddr, (ULONG_PTR)AsmstdcallStub, NumberOfBytesToHook);
 #endif
 }
 
 VOID
 hk_Asmstdcall(
 	_In_ PLIBCALL Frame
-	)
+)
 {
 	//
 	// Request the ownership of the critical section.
@@ -196,7 +195,7 @@ hk_Asmstdcall(
 	//
 	// Get the address of the current Windows API function to be called by asmstdcall.
 	//
-	DWORD_PTR FuncAddr = Frame->FuncAddr;
+	ULONG_PTR FuncAddr = Frame->FuncAddr;
 
 	//
 	// Make sure we avoid the IAT entries not set by the user.
@@ -214,13 +213,13 @@ hk_Asmstdcall(
 	//
 	if (bIsReadyToLog)
 	{
-		DWORD_PTR Params = Frame->Argv;
-		DWORD_PTR ReturnValue = Frame->ReturnValue;
+		ULONG_PTR Params = Frame->Argv;
+		ULONG_PTR ReturnValue = Frame->ReturnValue;
 
 		//
 		// Make sure we also trace API functions resolved after the Go runtime initialization.
 		//
-		if (FuncAddr == (DWORD_PTR)pGetProcAddress)
+		if (FuncAddr == (ULONG_PTR)pGetProcAddress)
 		{
 			//
 			// Get the second parameter passed to GetProcAddress() function (i.e. lpProcName).
@@ -308,7 +307,7 @@ hk_Asmstdcall(
 
 			if (WantedFuncAddr)
 			{
-				if (FuncAddr == (DWORD_PTR)WantedFuncAddr)
+				if (FuncAddr == (ULONG_PTR)WantedFuncAddr)
 				{
 					if (!strcmp(TargetFuncsInfo[i].Name, "GetProcAddress"))
 					{
@@ -332,7 +331,7 @@ hk_Asmstdcall(
 	// This function is part of the "os" package initialization and is called before the main package so we use it as a sentinel. 
 	// 
 	//
-	if (FuncAddr == (DWORD_PTR)pGetCommandLineW && !bIsReadyToLog)
+	if (FuncAddr == (ULONG_PTR)pGetCommandLineW && !bIsReadyToLog)
 	{
 		bIsReadyToLog = TRUE;
 
@@ -357,7 +356,7 @@ hk_Asmstdcall(
 		printf("\n\n");
 	}
 
-	Exit:
+Exit:
 
 	//
 	// Release ownership of the critical section.

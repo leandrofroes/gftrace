@@ -4,7 +4,7 @@
 VOID
 PrintError(
 	_In_ LPCSTR Msg
-	)
+)
 {
 	printf("\n[!] Error: %s!\n", Msg);
 	ExitProcess(0);
@@ -14,19 +14,19 @@ VOID
 PrintWinError(
 	_In_ LPCSTR Msg,
 	_In_ DWORD ErrorCode
-	)
+)
 {
 	printf("\n[!] Error: %s!\n[!] Error code: %u\n", Msg, ErrorCode);
 	ExitProcess(0);
 }
 
-DWORD_PTR
+ULONG_PTR
 FindPattern(
-	_In_ DWORD_PTR BaseAddr,
+	_In_ ULONG_PTR BaseAddr,
 	_In_ SIZE_T Size,
 	_In_ LPCSTR BytePattern,
 	_In_ LPCSTR Mask
-	)
+)
 {
 	SIZE_T PatternSize = strlen(Mask);
 	BOOL bFound;
@@ -42,7 +42,7 @@ FindPattern(
 
 		if (bFound)
 		{
-			return (DWORD_PTR)(BaseAddr + i);
+			return (ULONG_PTR)(BaseAddr + i);
 		}
 	}
 
@@ -53,12 +53,12 @@ VOID
 LogAPICall(
 	_In_ LPCSTR FuncName,
 	_In_ DWORD Argc,
-	_In_ DWORD_PTR Params,
+	_In_ ULONG_PTR Params,
 	_In_ DWORD ReturnValue
-	)
+)
 {
 	char* TempBuffer = calloc(MAX_STR_SIZE, 1);
-	char FinalString[MAX_STR_SIZE] = { 0 };
+	char FinalString[MAX_STR_SIZE] = {0};
 	SIZE_T Size = MAX_STR_SIZE;
 
 	snprintf(TempBuffer, Size, "- %s(", FuncName);
@@ -69,7 +69,7 @@ LogAPICall(
 	//
 	for (SIZE_T i = 0; i < Argc; i++)
 	{
-		DWORD_PTR Argv = *((DWORD_PTR *)Params + i);
+		ULONG_PTR Argv = *((ULONG_PTR*)Params + i);
 
 		//
 		// Try to guess if the argument is a string, an address or simply a number and print it properly.
@@ -111,23 +111,23 @@ LogAPICall(
 
 VOID
 LogGetProcAddressCall(
-	_In_ DWORD_PTR Params,
+	_In_ ULONG_PTR Params,
 	_In_ FARPROC ReturnValue
-	)
+)
 {
 	char* TempBuffer = calloc(MAX_STR_SIZE, 1);
-	char FinalString[MAX_STR_SIZE] = { 0 };
+	char FinalString[MAX_STR_SIZE] = {0};
 	SIZE_T Size = MAX_STR_SIZE;
 
 	snprintf(TempBuffer, Size, "- GetProcAddress(");
 	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
-	HMODULE ModuleBase = (HMODULE)*((DWORD_PTR*)Params + 0);
+	HMODULE ModuleBase = (HMODULE) * ((ULONG_PTR*)Params + 0);
 
 	snprintf(TempBuffer, Size, "0x%llx, ", ModuleBase);
 	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
 
-	LPCSTR ExportName = (LPCSTR)*((DWORD_PTR*)Params + 1);
+	LPCSTR ExportName = (LPCSTR) * ((ULONG_PTR*)Params + 1);
 
 	snprintf(TempBuffer, Size, "\"%s\"", ExportName);
 	strncat_s(FinalString, Size, TempBuffer, _TRUNCATE);
@@ -152,7 +152,7 @@ LogGetProcAddressCall(
 BOOL
 IsWideStr(
 	_In_ BYTE* Addr
-	)
+)
 {
 	if (!IsValidStrMem((LPCVOID)Addr))
 	{
@@ -163,7 +163,7 @@ IsWideStr(
 
 	for (SIZE_T i = 0; i < RequiredLen; i += 2)
 	{
-		if (Addr[i] > 0x7e || Addr[i] < 0x20 || Addr[i + 1] != '\0') 
+		if (Addr[i] > 0x7e || Addr[i] < 0x20 || Addr[i + 1] != '\0')
 		{
 			return FALSE;
 		}
@@ -175,7 +175,7 @@ IsWideStr(
 BOOL
 IsValidStrMem(
 	_In_ LPCVOID Addr
-	)
+)
 {
 	if (!Addr)
 	{
@@ -183,7 +183,7 @@ IsValidStrMem(
 	}
 
 	HANDLE hProcess = GetCurrentProcess();
-	MEMORY_BASIC_INFORMATION Mbi = { 0 };
+	MEMORY_BASIC_INFORMATION Mbi = {0};
 
 	if (!VirtualQueryEx(hProcess, Addr, &Mbi, sizeof(Mbi)) && GetLastError() != ERROR_INVALID_PARAMETER)
 	{
@@ -197,7 +197,7 @@ BOOL
 IsSameStr(
 	_In_ BYTE* Str1,
 	_In_ BYTE* Str2
-	)
+)
 {
 	if (!Str1 || !Str2)
 	{
@@ -232,8 +232,8 @@ IsSameStr(
 VOID
 InitTargetFuncList()
 {
-	char ConfigFileFullPath[MAX_PATH] = { 0 };
-	char CurrentModuleFilepath[MAX_PATH] = { 0 };
+	char ConfigFileFullPath[MAX_PATH] = {0};
+	char CurrentModuleFilepath[MAX_PATH] = {0};
 
 #ifdef _WIN64
 	LPCSTR ModuleName = "gftrace.dll";
@@ -259,7 +259,8 @@ InitTargetFuncList()
 
 	SIZE_T i = 0;
 
-	do {
+	do
+	{
 		ConfigFileFullPath[i] = CurrentModuleFilepath[i];
 		i++;
 	} while (CurrentModuleFilepath[i] != '\0');
@@ -410,14 +411,14 @@ VOID
 InitIATDenyList()
 {
 	HMODULE ModuleBase = GetModuleHandleW(NULL);
-	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((DWORD_PTR)ModuleBase);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((ULONG_PTR)ModuleBase);
 
 	if (ImportDesc == NULL)
 	{
 		PrintError("Import Descriptor is NULL");
 	}
 
-	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)ModuleBase + ImportDesc->FirstThunk);
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((ULONG_PTR)ModuleBase + ImportDesc->FirstThunk);
 
 	if (!FirstThunk)
 	{

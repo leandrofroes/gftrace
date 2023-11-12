@@ -59,7 +59,7 @@ BOOL WINAPI DllMain(
     HINSTANCE hModule,
     DWORD Reason,
     LPVOID Reserved
-    )
+)
 {
     switch (Reason)
     {

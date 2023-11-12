@@ -1,12 +1,21 @@
 #include <stdio.h>
 #include <windows.h>
 
-int main(int argc, char *argv[]) {
-    if (argc != 2)
+int main(int argc, char** argv)
+{
+    if (argc < 2)
     {
-        puts("Usage: gftrace.exe <target_file>");
+        printf("Usage: gftrace.exe <file> <params>\n");
         return 1;
     }
+
+    LPSTR CmdLine = GetCommandLineA();
+    LPSTR ProcCmdLine = strchr(CmdLine, 0x20);
+
+    //
+    // Ignore all the spaces next to argv[0]
+    //
+    while (*++ProcCmdLine == 0x20);
 
     PROCESS_INFORMATION ProcessInformation;
     STARTUPINFOA StartupInfo;
@@ -18,7 +27,7 @@ int main(int argc, char *argv[]) {
     //
     // Create the target process in suspended state.
     //
-    if (!CreateProcessA(NULL, (LPSTR)argv[1], NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &StartupInfo, &ProcessInformation)) 
+    if (!CreateProcessA(NULL, ProcCmdLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &StartupInfo, &ProcessInformation))
     {
         printf("[!] Failed to create the target process.\n[!] Error code: %u\n", GetLastError());
         return 1;
@@ -48,8 +57,8 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    char LibFullPath[MAX_PATH] = { 0 };
-    char CurrentModuleFilepath[MAX_PATH] = { 0 };
+    char LibFullPath[MAX_PATH] = {0};
+    char CurrentModuleFilepath[MAX_PATH] = {0};
 
     DWORD Len = GetModuleFileNameA(GetModuleHandleA(NULL), CurrentModuleFilepath, MAX_PATH);
 
@@ -71,7 +80,8 @@ int main(int argc, char *argv[]) {
 
     SIZE_T i = 0;
 
-    do {
+    do
+    {
         LibFullPath[i] = CurrentModuleFilepath[i];
         i++;
     } while (CurrentModuleFilepath[i] != '\0');
@@ -168,6 +178,8 @@ int main(int argc, char *argv[]) {
     // Resume the target process main thread.
     //
     ResumeThread(hThread);
+
+    WaitForSingleObject(hProcess, INFINITE);
 
     VirtualFreeEx(hProcess, LibFullPathRemoteAddr, 0, MEM_RELEASE);
     CloseHandle(hInjectionThread);

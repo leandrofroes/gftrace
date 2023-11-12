@@ -3,8 +3,8 @@
 
 PIMAGE_NT_HEADERS64
 GetNtHeader(
-	_In_ DWORD_PTR ModuleBase
-	)
+	_In_ ULONG_PTR ModuleBase
+)
 {
 	IMAGE_DOS_HEADER* DosHeader = (IMAGE_DOS_HEADER*)ModuleBase;
 
@@ -25,8 +25,8 @@ GetNtHeader(
 
 PIMAGE_NT_HEADERS32
 GetNtHeader32(
-	_In_ DWORD_PTR ModuleBase
-	)
+	_In_ ULONG_PTR ModuleBase
+)
 {
 	IMAGE_DOS_HEADER* DosHeader = (IMAGE_DOS_HEADER*)ModuleBase;
 
@@ -47,8 +47,8 @@ GetNtHeader32(
 
 PIMAGE_EXPORT_DIRECTORY
 GetExportDirectory(
-	_In_ DWORD_PTR ModuleBase
-	)
+	_In_ ULONG_PTR ModuleBase
+)
 {
 #ifdef _WIN64
 	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
@@ -71,8 +71,8 @@ GetExportDirectory(
 
 PIMAGE_IMPORT_DESCRIPTOR
 GetImportDesc(
-	_In_ DWORD_PTR ModuleBase
-	)
+	_In_ ULONG_PTR ModuleBase
+)
 {
 #ifdef _WIN64
 	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
@@ -95,9 +95,9 @@ GetImportDesc(
 
 PIMAGE_SECTION_HEADER
 GetSectionHeader(
-	_In_ DWORD_PTR ModuleBase,
+	_In_ ULONG_PTR ModuleBase,
 	_In_ BYTE* SectionName
-	)
+)
 {
 #ifdef _WIN64
 	PIMAGE_NT_HEADERS64 NtHeader = GetNtHeader(ModuleBase);
@@ -129,7 +129,7 @@ GetSectionHeader(
 FARPROC
 GetExportAddr(
 	_In_ LPCSTR ExportName
-	)
+)
 {
 #ifdef _WIN64
 	PPEB Peb = (PPEB)__readgsqword(0x60);
@@ -147,7 +147,7 @@ GetExportAddr(
 	while (CurrentEntry != &Peb->Ldr->InLoadOrderModuleList && CurrentEntry != NULL)
 	{
 		CurrentModule = CONTAINING_RECORD(CurrentEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
-		ExportAddr = ResolveExportAddr((DWORD_PTR)CurrentModule->DllBase, ExportName);
+		ExportAddr = ResolveExportAddr((ULONG_PTR)CurrentModule->DllBase, ExportName);
 
 		if (ExportAddr != NULL)
 		{
@@ -162,9 +162,9 @@ GetExportAddr(
 
 FARPROC
 ResolveExportAddr(
-	_In_ DWORD_PTR ModuleBase,
+	_In_ ULONG_PTR ModuleBase,
 	_In_ LPCSTR ExportName
-	)
+)
 {
 	PIMAGE_EXPORT_DIRECTORY ExportDir = GetExportDirectory(ModuleBase);
 
@@ -198,18 +198,18 @@ ResolveExportAddr(
 LPCSTR
 GetImportName(
 	_In_ FARPROC ImportAddr
-	)
+)
 {
 	HMODULE ModuleBase = GetModuleHandle(NULL);
-	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((DWORD_PTR)ModuleBase);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((ULONG_PTR)ModuleBase);
 
 	if (ImportDesc == NULL)
 	{
 		return NULL;
 	}
 
-	PIMAGE_THUNK_DATA OriginalFirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)ModuleBase + ImportDesc->OriginalFirstThunk);
-	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)ModuleBase + ImportDesc->FirstThunk);
+	PIMAGE_THUNK_DATA OriginalFirstThunk = (PIMAGE_THUNK_DATA)((ULONG_PTR)ModuleBase + ImportDesc->OriginalFirstThunk);
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((ULONG_PTR)ModuleBase + ImportDesc->FirstThunk);
 
 	SIZE_T i = 0;
 
@@ -219,7 +219,7 @@ GetImportName(
 		{
 			if (!memcmp(&FirstThunk->u1.Function, ImportAddr, sizeof(FARPROC)))
 			{
-				PIMAGE_IMPORT_BY_NAME ImportName = (PIMAGE_IMPORT_BY_NAME)((DWORD_PTR)ModuleBase + OriginalFirstThunk->u1.AddressOfData);
+				PIMAGE_IMPORT_BY_NAME ImportName = (PIMAGE_IMPORT_BY_NAME)((ULONG_PTR)ModuleBase + OriginalFirstThunk->u1.AddressOfData);
 				return (LPCSTR)ImportName->Name;
 			}
 			OriginalFirstThunk++;
@@ -233,17 +233,17 @@ GetImportName(
 BOOL
 HasImport(
 	_In_ FARPROC ImportAddr
-	)
+)
 {
 	HMODULE ModuleBase = GetModuleHandleW(NULL);
-	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((DWORD_PTR)ModuleBase);
+	PIMAGE_IMPORT_DESCRIPTOR ImportDesc = GetImportDesc((ULONG_PTR)ModuleBase);
 
 	if (ImportDesc == NULL)
 	{
 		return FALSE;
 	}
 
-	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)ModuleBase + ImportDesc->FirstThunk);
+	PIMAGE_THUNK_DATA FirstThunk = (PIMAGE_THUNK_DATA)((ULONG_PTR)ModuleBase + ImportDesc->FirstThunk);
 
 	SIZE_T i = 0;
 
