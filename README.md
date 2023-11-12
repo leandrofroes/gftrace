@@ -8,7 +8,7 @@ A command line Windows API tracing tool for Golang binaries.
 
 Although Golang programs contains a lot of nuances regarding the way they are built and their behavior in runtime they still need to interact with the OS layer and that means at some point they do need to call functions from the Windows API.
 
-The Go runtime package contains a function called [asmstdcall](https://github.com/golang/go/blob/2c7856087a7b3864284f908c0a091fd5af419d03/src/runtime/sys_windows_amd64.s#L15) and this function is a kind of "gateway" used to interact with the Windows API. Since it's expected this function to call the Windows API functions we can assume it needs to have access to information such as the address of the function and it's parameters, and this is where things start to get more interesting.
+The Go runtime package contains a function called [asmstdcall](https://github.com/golang/go/blob/master/src/runtime/sys_windows_amd64.s#L20) and this function is a kind of "gateway" used to interact with the Windows API. Since it's expected this function to call the Windows API functions we can assume it needs to have access to information such as the address of the function and it's parameters, and this is where things start to get more interesting.
 
 Asmstdcall receives a single parameter which is pointer to something similar to the following structure:
 
@@ -42,7 +42,7 @@ Download the latest [release](https://github.com/leandrofroes/gftrace/releases).
 3. Run gftrace.exe passing the target Golang program path as a parameter.
 
 ```
-gftrace.exe <filepath>
+gftrace.exe <filepath> <params>
 ```
 
 ## **Configuration**
@@ -125,6 +125,7 @@ Tracing multiple functions in the DeimosC2 framework agent:
 
 - [x] Support inspection of 32 bits files.
 - [x] Add support to files calling functions via the "IAT jmp table" instead of the API call directly in asmstdcall.
+- [x] Add support to cmdline parameters for the target process
 - [ ] Send the tracing log output to a file by default to make it better to filter. Currently there's no separation between the target file and gftrace output. An alternative is redirect gftrace output to a file using the command line.
 
 ## :warning: **Warning**
