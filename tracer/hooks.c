@@ -146,7 +146,7 @@ HookAsmstdcall()
 		0x48, 0x89, 0x41, 0x28                               // mov qword ptr ds:[rcx+0x28], rax
 	};
 
-	LPCSTR Mask = "xxxxxxxxxxxxxxxxx";
+	LPCSTR Mask = "xxxxxxxxxxxxxxxx";
 	SIZE_T NumberOfBytesToHook = 0x10;
 #else
 	//
